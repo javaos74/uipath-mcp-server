@@ -19,7 +19,7 @@ sys.path.insert(0, 'backend')
 from src.database import Database
 
 async def setup():
-    db = Database('mcp_servers.db')
+    db = Database('database/mcp_servers.db')
     await db.initialize()
     
     # Check if testuser exists
