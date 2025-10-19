@@ -105,6 +105,7 @@ Available variables:
 - `API_PORT` - Server port (default: 8000)
 - `DB_PATH` - Database file path (default: database/mcp_servers.db)
 - `SECRET_KEY` - JWT secret key (required for production)
+- `TOOL_CALL_TIMEOUT` - UiPath tool execution timeout in seconds (default: 600)
 - `LOG_LEVEL` - Logging level (default: INFO)
 
 ## License
