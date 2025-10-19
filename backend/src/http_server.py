@@ -7,10 +7,14 @@ from starlette.middleware.cors import CORSMiddleware
 from mcp.server.sse import SseServerTransport
 from mcp.server.streamable_http import StreamableHTTPServerTransport
 import json
+import logging
 from datetime import timedelta
 
 from .mcp_server import DynamicMCPServer
 from .database import Database
+
+# Configure logging
+logger = logging.getLogger(__name__)
 from .auth import (
     create_access_token,
     get_current_user,
@@ -54,7 +58,9 @@ sse_transports = {}
 
 async def startup():
     """Initialize on startup."""
+    logger.info("Initializing HTTP server and database...")
     await db.initialize()
+    logger.info("HTTP server startup complete")
 
 
 async def get_or_create_mcp_server(
@@ -64,8 +70,10 @@ async def get_or_create_mcp_server(
     key = f"{tenant_name}/{server_name}"
 
     if key not in mcp_servers:
+        logger.info(f"Creating new MCP server instance for {key}")
         server_data = await db.get_server(tenant_name, server_name)
         if not server_data:
+            logger.warning(f"Server not found: {key}")
             return None
 
         # Pass user_id to MCP server for UiPath credentials
@@ -74,6 +82,9 @@ async def get_or_create_mcp_server(
         )
         await mcp_server.initialize()
         mcp_servers[key] = mcp_server
+        logger.info(f"MCP server instance created for {key}")
+    else:
+        logger.debug(f"Using cached MCP server instance for {key}")
 
     return mcp_servers[key]
 
@@ -86,10 +97,14 @@ async def register(request):
     try:
         data = await request.json()
         user_data = UserCreate(**data)
+        logger.info(f"Registration attempt for username: {user_data.username}")
 
         # Check if username exists
         existing = await db.get_user_by_username(user_data.username)
         if existing:
+            logger.warning(
+                f"Registration failed: username {user_data.username} already exists"
+            )
             return JSONResponse({"error": "Username already exists"}, status_code=409)
 
         # Create user
@@ -106,9 +121,13 @@ async def register(request):
             **{k: v for k, v in user.items() if k != "hashed_password"}
         )
 
+        logger.info(
+            f"User registered successfully: {user_data.username} (id={user_id})"
+        )
         return JSONResponse(user_response.model_dump(), status_code=201)
 
     except Exception as e:
+        logger.error(f"Registration error: {e}", exc_info=True)
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
@@ -117,22 +136,26 @@ async def login(request):
     try:
         data = await request.json()
         login_data = UserLogin(**data)
+        logger.info(f"Login attempt for username: {login_data.username}")
 
         # Get user
         user = await db.get_user_by_username(login_data.username)
         if not user:
+            logger.warning(f"Login failed: user not found - {login_data.username}")
             return JSONResponse(
                 {"error": "Invalid username or password"}, status_code=401
             )
 
         # Verify password
         if not db.verify_password(login_data.password, user["hashed_password"]):
+            logger.warning(f"Login failed: invalid password for {login_data.username}")
             return JSONResponse(
                 {"error": "Invalid username or password"}, status_code=401
             )
 
         # Check if active
         if not user["is_active"]:
+            logger.warning(f"Login failed: inactive account - {login_data.username}")
             return JSONResponse({"error": "User account is inactive"}, status_code=403)
 
         # Create access token
@@ -147,9 +170,11 @@ async def login(request):
 
         token_response = Token(access_token=access_token, user=user_response)
 
+        logger.info(f"Login successful: {login_data.username}")
         return JSONResponse(token_response.model_dump())
 
     except Exception as e:
+        logger.error(f"Login error: {e}", exc_info=True)
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
@@ -287,9 +312,11 @@ async def sse_handler(request):
     """
     tenant_name = request.path_params["tenant_name"]
     server_name = request.path_params["server_name"]
+    logger.info(f"SSE connection request: {tenant_name}/{server_name}")
 
     # Check authentication
     if not await check_mcp_access(request, db, tenant_name, server_name):
+        logger.warning(f"SSE access denied: {tenant_name}/{server_name}")
         return JSONResponse(
             {
                 "error": "Access denied. Please provide a valid authentication token.",
@@ -301,6 +328,7 @@ async def sse_handler(request):
     mcp_server_instance = await get_or_create_mcp_server(tenant_name, server_name)
 
     if not mcp_server_instance:
+        logger.error(f"MCP server not found: {tenant_name}/{server_name}")
         return JSONResponse(
             {"error": f"MCP server not found: {tenant_name}/{server_name}"},
             status_code=404,
@@ -311,12 +339,14 @@ async def sse_handler(request):
     # SSE (Server-Sent Events) protocol
     key = f"{tenant_name}/{server_name}"
     if key not in sse_transports:
+        logger.info(f"Creating new SSE transport for {key}")
         sse_transports[key] = SseServerTransport(
             f"/mcp/{tenant_name}/{server_name}/sse/messages"
         )
 
     sse = sse_transports[key]
 
+    logger.info(f"Starting SSE session for {key}")
     # Handle the SSE connection directly
     async with sse.connect_sse(request.scope, request.receive, request._send) as (
         read_stream,
@@ -326,6 +356,7 @@ async def sse_handler(request):
         await mcp_server.run(
             read_stream, write_stream, mcp_server.create_initialization_options()
         )
+    logger.info(f"SSE session ended for {key}")
 
 
 async def http_streamable_post_handler(request):
@@ -344,9 +375,11 @@ async def http_streamable_post_handler(request):
     """
     tenant_name = request.path_params["tenant_name"]
     server_name = request.path_params["server_name"]
+    logger.info(f"HTTP Streamable POST request: {tenant_name}/{server_name}")
 
     # Check authentication
     if not await check_mcp_access(request, db, tenant_name, server_name):
+        logger.warning(f"HTTP Streamable access denied: {tenant_name}/{server_name}")
         return JSONResponse(
             {
                 "error": "Access denied. Please provide a valid authentication token.",
@@ -358,6 +391,7 @@ async def http_streamable_post_handler(request):
     mcp_server_instance = await get_or_create_mcp_server(tenant_name, server_name)
 
     if not mcp_server_instance:
+        logger.error(f"MCP server not found: {tenant_name}/{server_name}")
         return JSONResponse(
             {"error": f"MCP server not found: {tenant_name}/{server_name}"},
             status_code=404,
@@ -375,11 +409,13 @@ async def http_streamable_post_handler(request):
             response_started = True
         await request._send(message)
 
+    logger.debug(f"Processing HTTP Streamable request for {tenant_name}/{server_name}")
     streamable = StreamableHTTPServerTransport(mcp_session_id=None)
     await streamable.handle_request(
         request.scope, request.receive, tracking_send, mcp_server
     )
 
+    logger.debug(f"HTTP Streamable request completed for {tenant_name}/{server_name}")
     # Response already sent via tracking_send
     # Return a no-op ASGI callable to satisfy Starlette
     return NoOpResponse()

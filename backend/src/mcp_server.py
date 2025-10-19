@@ -1,10 +1,11 @@
 """MCP Server that dynamically exposes registered tools."""
 
 from mcp.server import Server
-from mcp.types import Tool, TextContent
+from mcp.types import Tool, TextContent, LoggingLevel
 import json
 import asyncio
 import logging
+import os
 from typing import Optional
 
 from .database import Database
@@ -12,6 +13,9 @@ from .uipath_client import UiPathClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Get tool call timeout from environment variable (default: 10 minutes = 600 seconds)
+TOOL_CALL_TIMEOUT = int(os.getenv("TOOL_CALL_TIMEOUT", "600"))
 
 
 class DynamicMCPServer:
@@ -30,7 +34,41 @@ class DynamicMCPServer:
         self.user_id = user_id
         self.uipath_client = UiPathClient()
         self.server = Server(f"uipath-mcp-server-{server_id}")
+
+        logger.info(
+            f"Initializing MCP server {server_id} with tool call timeout: {TOOL_CALL_TIMEOUT}s ({TOOL_CALL_TIMEOUT // 60} minutes)"
+        )
+
         self._setup_handlers()
+
+    async def send_notification_message(
+        self,
+        session,
+        message: str,
+        level: LoggingLevel = "info",
+        related_request_id: Optional[str] = None,
+    ):
+        """Send a log message notification to the client.
+
+        This uses the MCP protocol's logging/message notification to send
+        real-time status updates to the client during long-running operations.
+
+        Args:
+            session: MCP ServerSession object
+            message: Message to send to the client
+            level: Logging level ("debug", "info", "notice", "warning", "error", "critical", "alert", "emergency")
+            related_request_id: Optional request ID to associate this log with
+        """
+        try:
+            await session.send_log_message(
+                level=level,
+                data=message,
+                logger="uipath-mcp-server",
+                related_request_id=related_request_id,
+            )
+            logger.debug(f"Sent notification to client: [{level}] {message}")
+        except Exception as e:
+            logger.error(f"Failed to send notification message: {e}", exc_info=True)
 
     def _setup_handlers(self):
         """Setup MCP server handlers."""
@@ -58,8 +96,15 @@ class DynamicMCPServer:
         @self.server.call_tool()
         async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             """Handle tool calls with background progress monitoring."""
-            
-            logger.info(f"=== call_tool invoked: name={name}, arguments={arguments} ===")
+
+            logger.info(
+                f"=== call_tool invoked: name={name}, arguments={arguments} ==="
+            )
+
+            # Get request context for progress notifications
+            ctx = self.server.request_context
+            progress_token = ctx.meta.progressToken if ctx.meta else None
+            logger.info(f"Progress token from client: {progress_token}")
 
             # Get tool from database
             tool = await self.db.get_tool(self.server_id, name)
@@ -89,7 +134,9 @@ class DynamicMCPServer:
                             uipath_token = user.get("uipath_access_token")
 
                     # Execute process
-                    logger.info(f"Executing UiPath process: {tool['uipath_process_name']}")
+                    logger.info(
+                        f"Executing UiPath process: {tool['uipath_process_name']}"
+                    )
                     job = await self.uipath_client.execute_process(
                         process_name=tool["uipath_process_name"],
                         folder_path=tool["uipath_folder_path"] or "",
@@ -101,32 +148,67 @@ class DynamicMCPServer:
 
                     job_id = job.get("id", "")
                     folder_id = job.get("folder_id", "") or tool.get("uipath_folder_id")
-                    progress_token = f"uipath_job_{job_id}"
-                    
-                    logger.info(f"UiPath job started: job_id={job_id}, progress_token={progress_token}")
+
+                    logger.info(f"UiPath job started: job_id={job_id}")
 
                     # Capture current session for background notifications
                     session = self.server.request_context.session
                     logger.info(f"Captured session: {session}")
 
                     # Background task for monitoring and progress notifications
-                    async def monitor_job_with_progress():
-                        """Monitor job and send progress notifications."""
+                    async def monitor_job_with_progress(
+                        session,
+                        progress_token,
+                        job_id: str,
+                        folder_id: str,
+                        tool_info: dict,
+                        uipath_url: str,
+                        uipath_token: str,
+                    ):
+                        """Monitor job and send progress notifications.
+
+                        Args:
+                            session: MCP server session for sending notifications
+                            progress_token: Progress token from client (optional)
+                            job_id: UiPath job ID to monitor
+                            folder_id: UiPath folder ID
+                            tool_info: Tool configuration dictionary
+                            uipath_url: UiPath Orchestrator URL
+                            uipath_token: UiPath access token
+                        """
                         try:
                             logger.info(
-                                f"Starting job monitoring for job_id={job_id}, process={tool['uipath_process_name']}"
+                                f"Starting job monitoring for job_id={job_id}, process={tool_info['uipath_process_name']}"
                             )
 
-                            # Initial progress
-                            await session.send_progress_notification(
-                                progress_token=progress_token, progress=10, total=100
+                            # Send initial notification
+                            await self.send_notification_message(
+                                session,
+                                f"🚀 Starting UiPath process '{tool_info['uipath_process_name']}' (Job ID: {job_id})",
+                                "info",
                             )
+
+                            # Send initial progress if token provided
+                            if progress_token:
+                                await session.send_progress_notification(
+                                    progress_token=progress_token,
+                                    progress=0,
+                                    total=100,
+                                    message=f"Starting process '{tool_info['uipath_process_name']}'",
+                                )
 
                             poll_count = 0
-                            max_polls = 150  # 5 minutes with 2 second intervals
+                            poll_interval = 2  # seconds between each status check
+                            max_polls = (
+                                TOOL_CALL_TIMEOUT // poll_interval
+                            )  # Calculate max polls based on timeout
+
+                            logger.info(
+                                f"Job monitoring timeout: {TOOL_CALL_TIMEOUT}s ({TOOL_CALL_TIMEOUT // 60} minutes)"
+                            )
 
                             while poll_count < max_polls:
-                                await asyncio.sleep(2)
+                                await asyncio.sleep(poll_interval)
                                 poll_count += 1
 
                                 # Get job status
@@ -138,19 +220,31 @@ class DynamicMCPServer:
                                 )
 
                                 state = status.get("state", "").lower()
+                                info = status.get("info", "N/A")
                                 logger.info(
-                                    f"Job {job_id} status check #{poll_count}: state={state}, info={status.get('info', 'N/A')}"
+                                    f"Job {job_id} status check #{poll_count}: state={state}, info={info}"
                                 )
 
                                 # Check if job completed
                                 if state == "successful":
                                     logger.info(f"Job {job_id} completed successfully")
-                                    # Send final progress
-                                    await session.send_progress_notification(
-                                        progress_token=progress_token,
-                                        progress=100,
-                                        total=100,
+
+                                    # Send completion notification
+                                    await self.send_notification_message(
+                                        session,
+                                        f"✅ Process '{tool_info['uipath_process_name']}' completed successfully",
+                                        "info",
                                     )
+
+                                    # Send final progress if token provided
+                                    if progress_token:
+                                        await session.send_progress_notification(
+                                            progress_token=progress_token,
+                                            progress=100,
+                                            total=100,
+                                            message="Process completed successfully",
+                                        )
+
                                     # Return success result
                                     output_args = status.get("output_arguments")
                                     logger.info(f"Job {job_id} output: {output_args}")
@@ -158,73 +252,98 @@ class DynamicMCPServer:
                                         "success": True,
                                         "job_id": job_id,
                                         "status": "successful",
-                                        "message": f"Process '{tool['uipath_process_name']}' completed successfully",
+                                        "message": f"Process '{tool_info['uipath_process_name']}' completed successfully",
                                         "output": output_args if output_args else {},
                                     }
 
                                 elif state == "faulted":
-                                    logger.error(
-                                        f"Job {job_id} faulted: {status.get('info', 'No error info')}"
+                                    error_msg = f"❌ Process '{tool_info['uipath_process_name']}' failed: {info}"
+                                    logger.error(f"Job {job_id} faulted: {info}")
+
+                                    # Send error notification
+                                    await self.send_notification_message(
+                                        session, error_msg, "error"
                                     )
-                                    # Send final progress
-                                    await session.send_progress_notification(
-                                        progress_token=progress_token,
-                                        progress=90,
-                                        total=100,
-                                    )
+
                                     # Return failure result
                                     return {
                                         "success": False,
                                         "job_id": job_id,
                                         "status": "faulted",
-                                        "error": f"Process '{tool['uipath_process_name']}' failed",
-                                        "info": status.get("info", ""),
+                                        "error": f"Process '{tool_info['uipath_process_name']}' failed",
+                                        "info": info,
                                     }
 
                                 elif state == "stopped":
                                     logger.warning(f"Job {job_id} was stopped")
-                                    # Send final progress
-                                    await session.send_progress_notification(
-                                        progress_token=progress_token,
-                                        progress=90,
-                                        total=100,
+
+                                    # Send warning notification
+                                    await self.send_notification_message(
+                                        session,
+                                        f"⚠️ Process '{tool_info['uipath_process_name']}' was stopped",
+                                        "warning",
                                     )
+
                                     # Return stopped result
                                     return {
                                         "success": False,
                                         "job_id": job_id,
                                         "status": "stopped",
-                                        "message": f"Process '{tool['uipath_process_name']}' was stopped",
-                                        "info": status.get("info", ""),
+                                        "message": f"Process '{tool_info['uipath_process_name']}' was stopped",
+                                        "info": info,
                                     }
 
                                 else:
-                                    # Send incremental progress
-                                    progress = min(
+                                    # Calculate progress percentage
+                                    progress_value = min(
                                         10 + (poll_count * 80 // max_polls), 90
                                     )
-                                    await session.send_progress_notification(
-                                        progress_token=progress_token,
-                                        progress=progress,
-                                        total=100,
-                                    )
+                                    elapsed_seconds = poll_count * poll_interval
+
+                                    # Send progress update if token provided
+                                    if progress_token:
+                                        await session.send_progress_notification(
+                                            progress_token=progress_token,
+                                            progress=progress_value,
+                                            total=100,
+                                            message=f"작업상태: {state} (수행시간: {elapsed_seconds}초)",
+                                        )
 
                             # Timeout
+                            timeout_seconds = max_polls * poll_interval
+                            timeout_minutes = timeout_seconds // 60
+                            timeout_msg = f"Process '{tool_info['uipath_process_name']}' timed out after {timeout_minutes} minutes ({timeout_seconds}s)"
                             logger.warning(
-                                f"Job {job_id} timed out after {max_polls * 2} seconds"
+                                f"Job {job_id} timed out after {timeout_seconds} seconds"
                             )
+
+                            # Send timeout notification
+                            await self.send_notification_message(
+                                session,
+                                f"{timeout_msg}. Job may still be running in UiPath Orchestrator.",
+                                "warning",
+                            )
+
                             return {
                                 "success": False,
                                 "job_id": job_id,
                                 "status": "timeout",
-                                "error": f"Process '{tool['uipath_process_name']}' timed out after 5 minutes",
+                                "error": timeout_msg,
                                 "message": "Job may still be running. Check UiPath Orchestrator for status.",
                             }
 
                         except Exception as e:
-                            logger.error(
-                                f"Error monitoring job {job_id}: {e}", exc_info=True
-                            )
+                            error_msg = f"Error monitoring job {job_id}: {str(e)}"
+                            logger.error(error_msg, exc_info=True)
+
+                            # Send error notification
+                            try:
+                                await self.send_notification_message(
+                                    session, error_msg, "error"
+                                )
+                            except:
+                                pass  # Don't fail if notification fails
+
                             return {
                                 "success": False,
                                 "job_id": job_id,
@@ -234,7 +353,17 @@ class DynamicMCPServer:
 
                     # Create and await the monitoring task
                     logger.info(f"Creating monitoring task for job {job_id}")
-                    task = asyncio.create_task(monitor_job_with_progress())
+                    task = asyncio.create_task(
+                        monitor_job_with_progress(
+                            session=session,
+                            progress_token=progress_token,
+                            job_id=job_id,
+                            folder_id=folder_id,
+                            tool_info=tool,
+                            uipath_url=uipath_url,
+                            uipath_token=uipath_token,
+                        )
+                    )
                     logger.info(f"Waiting for monitoring task to complete...")
                     result = await task
                     logger.info(f"Monitoring task completed with result: {result}")
