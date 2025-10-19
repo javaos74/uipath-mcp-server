@@ -31,6 +31,14 @@ from .models import (
 )
 
 
+# No-op ASGI callable for handlers that already sent response
+class NoOpResponse:
+    """ASGI callable that does nothing (response already sent)."""
+
+    async def __call__(self, scope, receive, send):
+        pass
+
+
 # Initialize database
 import os
 
@@ -372,16 +380,12 @@ async def http_streamable_post_handler(request):
         request.scope, request.receive, tracking_send, mcp_server
     )
 
-    # If response was already sent by handle_request, don't send another one
-    # Return None to indicate no further response needed
-    if response_started:
-        return None
-
-    # If for some reason response wasn't sent, return empty response
-    return Response(status_code=200)
+    # Response already sent via tracking_send
+    # Return a no-op ASGI callable to satisfy Starlette
+    return NoOpResponse()
 
 
-async def sse_message_handler(request):
+async def sse_message_post_handler(request):
     """Handle POST messages for SSE transport."""
     tenant_name = request.path_params["tenant_name"]
     server_name = request.path_params["server_name"]
@@ -415,13 +419,9 @@ async def sse_message_handler(request):
 
     await sse.handle_post_message(request.scope, request.receive, tracking_send)
 
-    # If response was already sent by handle_post_message, don't send another one
-    # Return None to indicate no further response needed
-    if response_started:
-        return None
-
-    # If for some reason response wasn't sent, return empty response
-    return Response(status_code=200)
+    # Response already sent via tracking_send
+    # Return a no-op ASGI callable to satisfy Starlette
+    return NoOpResponse()
 
 
 # ==================== Health Check ====================
@@ -823,7 +823,7 @@ app = Starlette(
         ),  # SSE
         Route(
             "/mcp/{tenant_name}/{server_name}/sse/messages",
-            sse_message_handler,
+            sse_message_post_handler,
             methods=["POST"],
         ),  # SSE Messages
         # Health check

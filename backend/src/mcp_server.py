@@ -38,7 +38,9 @@ class DynamicMCPServer:
         @self.server.list_tools()
         async def list_tools() -> list[Tool]:
             """List all available tools from database."""
+            logger.info(f"=== list_tools invoked for server_id={self.server_id} ===")
             tools_data = await self.db.list_tools(self.server_id)
+            logger.info(f"Found {len(tools_data)} tools in database")
 
             tools = []
             for tool_data in tools_data:
@@ -50,14 +52,18 @@ class DynamicMCPServer:
                     )
                 )
 
+            logger.info(f"Returning {len(tools)} tools")
             return tools
 
         @self.server.call_tool()
         async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             """Handle tool calls with background progress monitoring."""
+            
+            logger.info(f"=== call_tool invoked: name={name}, arguments={arguments} ===")
 
             # Get tool from database
             tool = await self.db.get_tool(self.server_id, name)
+            logger.info(f"Tool retrieved from database: {tool}")
 
             if not tool:
                 return [
@@ -83,6 +89,7 @@ class DynamicMCPServer:
                             uipath_token = user.get("uipath_access_token")
 
                     # Execute process
+                    logger.info(f"Executing UiPath process: {tool['uipath_process_name']}")
                     job = await self.uipath_client.execute_process(
                         process_name=tool["uipath_process_name"],
                         folder_path=tool["uipath_folder_path"] or "",
@@ -95,9 +102,12 @@ class DynamicMCPServer:
                     job_id = job.get("id", "")
                     folder_id = job.get("folder_id", "") or tool.get("uipath_folder_id")
                     progress_token = f"uipath_job_{job_id}"
+                    
+                    logger.info(f"UiPath job started: job_id={job_id}, progress_token={progress_token}")
 
                     # Capture current session for background notifications
                     session = self.server.request_context.session
+                    logger.info(f"Captured session: {session}")
 
                     # Background task for monitoring and progress notifications
                     async def monitor_job_with_progress():
@@ -223,8 +233,11 @@ class DynamicMCPServer:
                             }
 
                     # Create and await the monitoring task
+                    logger.info(f"Creating monitoring task for job {job_id}")
                     task = asyncio.create_task(monitor_job_with_progress())
+                    logger.info(f"Waiting for monitoring task to complete...")
                     result = await task
+                    logger.info(f"Monitoring task completed with result: {result}")
 
                     # Return the result
                     return [TextContent(type="text", text=json.dumps(result, indent=2))]
