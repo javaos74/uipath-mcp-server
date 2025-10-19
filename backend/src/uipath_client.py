@@ -52,6 +52,7 @@ class UiPathClient:
         input_arguments: Dict[str, Any],
         uipath_url: Optional[str] = None,
         uipath_access_token: Optional[str] = None,
+        folder_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Execute a UiPath process.
 
@@ -61,9 +62,10 @@ class UiPathClient:
             input_arguments: Input arguments for the process
             uipath_url: UiPath Cloud URL (optional)
             uipath_access_token: UiPath PAT (optional)
+            folder_id: UiPath folder ID (optional)
 
         Returns:
-            Job execution result
+            Job execution result with folder_id
         """
         sdk = self._get_sdk(uipath_url, uipath_access_token)
 
@@ -78,6 +80,7 @@ class UiPathClient:
             "id": str(job.id) if hasattr(job, "id") else "",
             "state": str(job.state) if hasattr(job, "state") else "Unknown",
             "info": str(job.info) if hasattr(job, "info") else "",
+            "folder_id": folder_id or "",
         }
 
     async def get_job_status(
@@ -85,25 +88,66 @@ class UiPathClient:
         job_id: str,
         uipath_url: Optional[str] = None,
         uipath_access_token: Optional[str] = None,
+        folder_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Get job status.
+        """Get job status using REST API.
 
         Args:
             job_id: Job ID
             uipath_url: UiPath Cloud URL (optional)
             uipath_access_token: UiPath PAT (optional)
+            folder_id: UiPath folder ID (optional, for header)
 
         Returns:
             Job status information
         """
-        sdk = self._get_sdk(uipath_url, uipath_access_token)
-        job = sdk.jobs.retrieve(id=job_id)
+        base_url = uipath_url or os.getenv("UIPATH_URL")
+        token = uipath_access_token or os.getenv("UIPATH_ACCESS_TOKEN")
 
-        return {
-            "id": str(job.id) if hasattr(job, "id") else "",
-            "state": str(job.state) if hasattr(job, "state") else "Unknown",
-            "info": str(job.info) if hasattr(job, "info") else "",
+        if not base_url or not token:
+            raise Exception("UiPath URL and token are required")
+
+        # Construct API URL - using Jobs(id) endpoint
+        api_url = f"{base_url}/orchestrator_/odata/Jobs({job_id})"
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
         }
+
+        # Add folder ID to header if provided
+        if folder_id:
+            headers["X-UIPATH-OrganizationUnitId"] = str(folder_id)
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(api_url, headers=headers, timeout=30.0)
+                response.raise_for_status()
+                job_data = response.json()
+
+            # Parse output arguments if present
+            output_args = None
+            if "OutputArguments" in job_data and job_data["OutputArguments"]:
+                try:
+                    import json
+
+                    output_args = (
+                        json.loads(job_data["OutputArguments"])
+                        if isinstance(job_data["OutputArguments"], str)
+                        else job_data["OutputArguments"]
+                    )
+                except:
+                    output_args = job_data["OutputArguments"]
+
+            return {
+                "id": str(job_data.get("Id", job_id)),
+                "state": str(job_data.get("State", "Unknown")),
+                "info": str(job_data.get("Info", "")),
+                "output_arguments": output_args,
+            }
+
+        except Exception as e:
+            raise Exception(f"Failed to get job status: {str(e)}")
 
     async def list_folders(
         self,
