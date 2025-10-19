@@ -1,13 +1,16 @@
 """HTTP Streamable (SSE) server for MCP with authentication."""
 
 from starlette.applications import Starlette
-from starlette.routing import Route
-from starlette.responses import JSONResponse, Response
+from starlette.routing import Route, Mount
+from starlette.responses import JSONResponse, Response, FileResponse
+from starlette.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from mcp.server.sse import SseServerTransport
 from mcp.server.streamable_http import StreamableHTTPServerTransport
 import json
 import logging
+import os
+from pathlib import Path
 from datetime import timedelta
 
 from .mcp_server import DynamicMCPServer
@@ -117,9 +120,9 @@ async def register(request):
 
         # Get created user
         user = await db.get_user_by_id(user_id)
-        user_response = UserResponse(
-            **{k: v for k, v in user.items() if k != "hashed_password"}
-        )
+        user_data = {k: v for k, v in user.items() if k != "hashed_password"}
+        user_data["has_uipath_token"] = False  # New user has no token
+        user_response = UserResponse(**user_data)
 
         logger.info(
             f"User registered successfully: {user_data.username} (id={user_id})"
@@ -164,9 +167,9 @@ async def login(request):
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         )
 
-        user_response = UserResponse(
-            **{k: v for k, v in user.items() if k != "hashed_password"}
-        )
+        user_data = {k: v for k, v in user.items() if k not in ["hashed_password", "uipath_access_token"]}
+        user_data["has_uipath_token"] = bool(user.get("uipath_access_token"))
+        user_response = UserResponse(**user_data)
 
         token_response = Token(access_token=access_token, user=user_response)
 
@@ -184,12 +187,13 @@ async def get_me(request):
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
 
-    # Exclude sensitive data
+    # Exclude sensitive data and add token status
     user_data = {
         k: v
         for k, v in user.model_dump().items()
         if k not in ["hashed_password", "uipath_access_token"]
     }
+    user_data["has_uipath_token"] = bool(user.uipath_access_token)
     user_response = UserResponse(**user_data)
     return JSONResponse(user_response.model_dump())
 
@@ -209,7 +213,6 @@ async def update_uipath_config(request):
             user_id=user.id,
             uipath_url=config.uipath_url,
             uipath_access_token=config.uipath_access_token,
-            uipath_folder_path=config.uipath_folder_path,
         )
 
         # Get updated user
@@ -219,6 +222,7 @@ async def update_uipath_config(request):
             for k, v in updated_user.items()
             if k not in ["hashed_password", "uipath_access_token"]
         }
+        user_data["has_uipath_token"] = bool(updated_user.get("uipath_access_token"))
         user_response = UserResponse(**user_data)
 
         return JSONResponse(user_response.model_dump())
@@ -837,6 +841,23 @@ async def delete_tool(request):
     return JSONResponse({"message": "Tool deleted"}, status_code=204)
 
 
+# ==================== Static Files & SPA ====================
+
+
+async def serve_spa(request):
+    """Serve the SPA for all non-API routes."""
+    static_dir = Path(__file__).parent.parent / "static"
+    index_file = static_dir / "index.html"
+    
+    if index_file.exists():
+        return FileResponse(index_file)
+    else:
+        return JSONResponse(
+            {"error": "Frontend not built. Run 'npm run build' in frontend directory."},
+            status_code=404
+        )
+
+
 # Create Starlette app
 app = Starlette(
     debug=True,
@@ -921,6 +942,18 @@ app = Starlette(
     ],
     on_startup=[startup],
 )
+
+# Check if static directory exists and mount static files
+static_dir = Path(__file__).parent.parent / "static"
+if static_dir.exists():
+    # Mount static assets (JS, CSS, images, etc.)
+    assets_dir = static_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+    
+    # Add SPA fallback route for all other paths
+    # This must be added after mounting the app
+    app.add_route("/{path:path}", serve_spa, methods=["GET"])
 
 # Store db in app state
 app.state.db = db

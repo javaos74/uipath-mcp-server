@@ -10,7 +10,6 @@ export default function Settings() {
   const [formData, setFormData] = useState<UiPathConfig>({
     uipath_url: user?.uipath_url || '',
     uipath_access_token: '',
-    uipath_folder_path: user?.uipath_folder_path || '',
   })
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
@@ -65,12 +64,12 @@ export default function Settings() {
 
         <form onSubmit={handleSubmit} className="settings-form">
           <div className="form-group">
-            <label htmlFor="uipath_url">UiPath Cloud URL</label>
+            <label htmlFor="uipath_url">UiPath Cloud/Automation Suite URL</label>
             <input
               id="uipath_url"
               type="text"
               className="input"
-              placeholder="https://cloud.uipath.com/account/tenant"
+              placeholder="https://cloud.uipath.com/org_name/tenant_name"
               value={formData.uipath_url}
               onChange={(e) =>
                 setFormData({ ...formData, uipath_url: e.target.value })
@@ -79,34 +78,26 @@ export default function Settings() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="uipath_access_token">Personal Access Token (PAT)</label>
+            <label htmlFor="uipath_access_token">UiPath Personal Access Token (PAT)</label>
             <input
               id="uipath_access_token"
               type="password"
               className="input"
-              placeholder="Enter your UiPath PAT"
+              placeholder={
+                user?.has_uipath_token
+                  ? '••••••••••••••••'
+                  : 'No PAT found - Enter your UiPath PAT'
+              }
               value={formData.uipath_access_token}
               onChange={(e) =>
                 setFormData({ ...formData, uipath_access_token: e.target.value })
               }
             />
             <small className="form-help">
-              Your PAT is stored securely and never displayed
+              {user?.has_uipath_token
+                ? 'Current: ••••••••••••••••  (stored securely)'
+                : 'No PAT configured. Your PAT will be stored securely.'}
             </small>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="uipath_folder_path">Default Folder Path</label>
-            <input
-              id="uipath_folder_path"
-              type="text"
-              className="input"
-              placeholder="/Production/Finance"
-              value={formData.uipath_folder_path}
-              onChange={(e) =>
-                setFormData({ ...formData, uipath_folder_path: e.target.value })
-              }
-            />
           </div>
 
           {success && <div className="success">{success}</div>}

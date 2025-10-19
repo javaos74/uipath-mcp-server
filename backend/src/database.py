@@ -212,7 +212,6 @@ class Database:
         user_id: int,
         uipath_url: Optional[str] = None,
         uipath_access_token: Optional[str] = None,
-        uipath_folder_path: Optional[str] = None,
     ) -> bool:
         """Update user's UiPath configuration.
 
@@ -220,7 +219,6 @@ class Database:
             user_id: User ID
             uipath_url: UiPath Cloud URL
             uipath_access_token: UiPath Personal Access Token
-            uipath_folder_path: UiPath folder path
 
         Returns:
             True if updated, False if not found
@@ -234,9 +232,6 @@ class Database:
         if uipath_access_token is not None:
             updates.append("uipath_access_token = ?")
             params.append(uipath_access_token)
-        if uipath_folder_path is not None:
-            updates.append("uipath_folder_path = ?")
-            params.append(uipath_folder_path)
 
         if not updates:
             return False

@@ -28,7 +28,7 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     uipath_url: Optional[str] = None
-    uipath_folder_path: Optional[str] = None
+    has_uipath_token: bool = False
     created_at: str
     updated_at: str
 
@@ -48,10 +48,6 @@ class UiPathConfigUpdate(BaseModel):
     uipath_access_token: Optional[str] = Field(
         None,
         description="UiPath Personal Access Token (PAT)"
-    )
-    uipath_folder_path: Optional[str] = Field(
-        None,
-        description="UiPath folder path (e.g., /Production/Finance)"
     )
 
 

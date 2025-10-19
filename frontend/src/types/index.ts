@@ -5,7 +5,7 @@ export interface User {
   role: 'user' | 'admin'
   is_active: boolean
   uipath_url: string | null
-  uipath_folder_path: string | null
+  has_uipath_token: boolean
   created_at: string
   updated_at: string
 }
@@ -69,7 +69,6 @@ export interface MCPToolCreate {
 export interface UiPathConfig {
   uipath_url?: string
   uipath_access_token?: string
-  uipath_folder_path?: string
 }
 
 export interface UiPathFolder {
