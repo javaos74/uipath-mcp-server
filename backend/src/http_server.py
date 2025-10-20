@@ -125,7 +125,7 @@ async def register(request):
         user_response = UserResponse(**user_data)
 
         logger.info(
-            f"User registered successfully: {user_data.username} (id={user_id})"
+            f"User registered successfully: {user_data['username']} (id={user_id})"
         )
         return JSONResponse(user_response.model_dump(), status_code=201)
 
