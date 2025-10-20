@@ -48,6 +48,7 @@ class Database:
                     server_name TEXT NOT NULL,
                     description TEXT,
                     user_id INTEGER NOT NULL,
+                    api_token TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -55,6 +56,14 @@ class Database:
                 )
             """
             )
+
+            # Add api_token column if it doesn't exist (migration)
+            try:
+                await db.execute("ALTER TABLE mcp_servers ADD COLUMN api_token TEXT")
+                await db.commit()
+            except aiosqlite.OperationalError:
+                # Column already exists, ignore
+                pass
 
             # MCP Tools table (following MCP Tool specification)
             await db.execute(

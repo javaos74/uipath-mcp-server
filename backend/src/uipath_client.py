@@ -2,9 +2,14 @@
 
 import os
 import httpx
+import json
 import logging
+import warnings
 from typing import Dict, Any, Optional
 from uipath import UiPath
+
+# Suppress SSL warnings for self-signed certificates
+warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +80,52 @@ class UiPathClient:
         logger.info(f"Folder: {folder_path} (ID: {folder_id})")
         logger.info(f"Arguments: {input_arguments}")
 
+        base_url = uipath_url or os.getenv("UIPATH_URL")
+
+        # Check if URL contains 'uipath.com' to decide which method to use
+        if base_url and "uipath.com" in base_url:
+            logger.info("Using UiPath SDK for Cloud (uipath.com)")
+            return await self._execute_process_sdk(
+                process_name,
+                folder_path,
+                input_arguments,
+                uipath_url,
+                uipath_access_token,
+                folder_id,
+            )
+        else:
+            logger.info("Using REST API for On-Premise/Self-hosted")
+            return await self._execute_process_rest(
+                process_name,
+                folder_path,
+                input_arguments,
+                uipath_url,
+                uipath_access_token,
+                folder_id,
+            )
+
+    async def _execute_process_sdk(
+        self,
+        process_name: str,
+        folder_path: str,
+        input_arguments: Dict[str, Any],
+        uipath_url: Optional[str] = None,
+        uipath_access_token: Optional[str] = None,
+        folder_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute a UiPath process using SDK (for Cloud).
+
+        Args:
+            process_name: Name of the process to execute
+            folder_path: UiPath folder path
+            input_arguments: Input arguments for the process
+            uipath_url: UiPath Cloud URL (optional)
+            uipath_access_token: UiPath PAT (optional)
+            folder_id: UiPath folder ID (optional)
+
+        Returns:
+            Job execution result with folder_id
+        """
         sdk = self._get_sdk(uipath_url, uipath_access_token)
 
         # Set folder path if provided
@@ -82,8 +133,10 @@ class UiPathClient:
             os.environ["UIPATH_FOLDER_PATH"] = folder_path
 
         # Execute process
-        logger.info(f"Invoking UiPath process...")
-        job = sdk.processes.invoke(name=process_name, input_arguments=input_arguments)
+        logger.info(f"Invoking UiPath process via SDK...")
+        job = sdk.processes.invoke(
+            name=process_name, folder_path=folder_path, input_arguments=input_arguments
+        )
         logger.info(
             f"Process invoked, job created: {job.id if hasattr(job, 'id') else 'N/A'}"
         )
@@ -97,6 +150,157 @@ class UiPathClient:
 
         logger.info(f"Returning result: {result}")
         return result
+
+    async def _execute_process_rest(
+        self,
+        process_name: str,
+        folder_path: str,
+        input_arguments: Dict[str, Any],
+        uipath_url: Optional[str] = None,
+        uipath_access_token: Optional[str] = None,
+        folder_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute a UiPath process using REST API startJobs (for On-Premise).
+
+        Args:
+            process_name: Name of the process to execute
+            folder_path: UiPath folder path
+            input_arguments: Input arguments for the process
+            uipath_url: UiPath URL (optional)
+            uipath_access_token: UiPath PAT (optional)
+            folder_id: UiPath folder ID (optional)
+
+        Returns:
+            Job execution result with folder_id
+        """
+        base_url = uipath_url or os.getenv("UIPATH_URL")
+        token = uipath_access_token or os.getenv("UIPATH_ACCESS_TOKEN")
+
+        if not base_url or not token:
+            logger.error("UiPath URL and token are required but not provided")
+            raise Exception("UiPath URL and token are required")
+
+        # Get release key for the process
+        logger.info(f"Getting release key for process: {process_name}")
+        release_key = await self._get_release_key(
+            process_name, folder_id, base_url, token
+        )
+
+        if not release_key:
+            raise Exception(f"Release not found for process: {process_name}")
+
+        # Construct API URL for startJobs
+        api_url = f"{base_url}/orchestrator_/odata/Jobs/UiPath.Server.Configuration.OData.StartJobs"
+        logger.info(f"API URL: {api_url}")
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        # Add folder ID to header if provided
+        if folder_id:
+            headers["X-UIPATH-OrganizationUnitId"] = str(folder_id)
+            logger.info(f"Using folder_id: {folder_id}")
+
+        # Prepare request body
+        request_body = {
+            "startInfo": {
+                "ReleaseKey": release_key,
+                "Strategy": "RobotCount",
+                "NoOfRobots": 1,
+                "RuntimeType": "Unattended",
+                "Source": "Manual",
+                "InputArguments": (
+                    json.dumps(input_arguments) if input_arguments else None
+                ),
+            }
+        }
+
+        logger.info(f"Request body: {request_body}")
+
+        try:
+            logger.info(f"Sending POST request to UiPath startJobs API...")
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.post(
+                    api_url, headers=headers, json=request_body, timeout=30.0
+                )
+                response.raise_for_status()
+                data = response.json()
+
+            logger.info(f"Received response: {data}")
+
+            # Extract job info from response
+            # Response format: {"@odata.context": "...", "value": [{"Key": "job-guid", "Id": 123, ...}]}
+            jobs = data.get("value", [])
+            if not jobs:
+                raise Exception("No job created in response")
+
+            job = jobs[0]
+            job_id = str(job.get("Id", ""))
+            job_key = str(job.get("Key", ""))
+            job_state = str(job.get("State", "Pending"))
+
+            result = {
+                "id": job_id,
+                "key": job_key,
+                "state": job_state,
+                "info": f"Job started with key: {job_key}",
+                "folder_id": folder_id or "",
+            }
+
+            logger.info(f"Returning result: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to start job: {str(e)}", exc_info=True)
+            raise Exception(f"Failed to start job: {str(e)}")
+
+    async def _get_release_key(
+        self, process_name: str, folder_id: Optional[str], base_url: str, token: str
+    ) -> Optional[str]:
+        """Get release key for a process.
+
+        Args:
+            process_name: Process name
+            folder_id: Folder ID
+            base_url: UiPath base URL
+            token: Access token
+
+        Returns:
+            Release key or None if not found
+        """
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        if folder_id:
+            headers["X-UIPATH-OrganizationUnitId"] = str(folder_id)
+
+        # Query releases by process name
+        api_url = f"{base_url}/orchestrator_/odata/Releases?$filter=ProcessKey eq '{process_name}'"
+        logger.info(f"Querying releases: {api_url}")
+
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(api_url, headers=headers, timeout=30.0)
+                response.raise_for_status()
+                data = response.json()
+
+            releases = data.get("value", [])
+            if releases:
+                # Return the first release key
+                release_key = releases[0].get("Key")
+                logger.info(f"Found release key: {release_key}")
+                return release_key
+
+            logger.warning(f"No release found for process: {process_name}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get release key: {str(e)}", exc_info=True)
+            return None
 
     async def get_job_status(
         self,
@@ -146,7 +350,7 @@ class UiPathClient:
 
         try:
             logger.info(f"Sending GET request to UiPath API...")
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(verify=False) as client:
                 response = await client.get(api_url, headers=headers, timeout=30.0)
                 response.raise_for_status()
                 job_data = response.json()
@@ -210,7 +414,7 @@ class UiPathClient:
         }
 
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(verify=False) as client:
                 response = await client.get(api_url, headers=headers, timeout=30.0)
                 response.raise_for_status()
                 data = response.json()
@@ -267,7 +471,7 @@ class UiPathClient:
                 "Content-Type": "application/json",
             }
 
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(verify=False) as client:
                 # Get folder info
                 folder_response = await client.get(
                     folder_api_url, headers=headers, timeout=30.0
