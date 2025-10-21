@@ -6,8 +6,10 @@ from pydantic import BaseModel, Field, EmailStr
 
 # ==================== User Models ====================
 
+
 class UserCreate(BaseModel):
     """Request model for creating a new user."""
+
     username: str = Field(..., min_length=3, max_length=50, description="Username")
     email: EmailStr = Field(..., description="Email address")
     password: str = Field(..., min_length=6, description="Password")
@@ -16,12 +18,14 @@ class UserCreate(BaseModel):
 
 class UserLogin(BaseModel):
     """Request model for user login."""
+
     username: str = Field(..., description="Username")
     password: str = Field(..., description="Password")
 
 
 class UserResponse(BaseModel):
     """Response model for user data."""
+
     id: int
     username: str
     email: str
@@ -38,36 +42,35 @@ class UserResponse(BaseModel):
 
 class UserInDB(UserResponse):
     """User model with hashed password and sensitive data (for internal use)."""
+
     hashed_password: str
     uipath_access_token: Optional[str] = None
 
 
 class UiPathConfigUpdate(BaseModel):
     """Request model for updating UiPath configuration."""
+
     uipath_url: Optional[str] = Field(
         None,
-        description="UiPath Cloud URL (e.g., https://cloud.uipath.com/account/tenant)"
+        description="UiPath Cloud URL (e.g., https://cloud.uipath.com/account/tenant)",
     )
     uipath_auth_type: Optional[str] = Field(
-        None,
-        description="Authentication type: 'pat' or 'oauth'"
+        None, description="Authentication type: 'pat' or 'oauth'"
     )
     uipath_access_token: Optional[str] = Field(
-        None,
-        description="UiPath Personal Access Token (PAT)"
+        None, description="UiPath Personal Access Token (PAT)"
     )
     uipath_client_id: Optional[str] = Field(
-        None,
-        description="OAuth Client ID for UiPath authentication"
+        None, description="OAuth Client ID for UiPath authentication"
     )
     uipath_client_secret: Optional[str] = Field(
-        None,
-        description="OAuth Client Secret for UiPath authentication"
+        None, description="OAuth Client Secret for UiPath authentication"
     )
 
 
 class Token(BaseModel):
     """Response model for authentication token."""
+
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
@@ -75,8 +78,10 @@ class Token(BaseModel):
 
 # ==================== MCP Server Models ====================
 
+
 class ServerCreate(BaseModel):
     """Request model for creating a new MCP server endpoint."""
+
     tenant_name: str = Field(..., description="Tenant name for the endpoint")
     server_name: str = Field(..., description="Server name for the endpoint")
     description: Optional[str] = Field(None, description="Server description")
@@ -84,11 +89,13 @@ class ServerCreate(BaseModel):
 
 class ServerUpdate(BaseModel):
     """Request model for updating an MCP server."""
+
     description: Optional[str] = Field(None, description="Server description")
 
 
 class ServerResponse(BaseModel):
     """Response model for MCP server data."""
+
     id: int
     tenant_name: str
     server_name: str
@@ -100,69 +107,56 @@ class ServerResponse(BaseModel):
 
 # ==================== MCP Tool Models ====================
 
+
 class ToolCreate(BaseModel):
     """Request model for creating a new MCP tool.
-    
+
     Follows MCP Tool specification:
     https://spec.modelcontextprotocol.io/specification/server/tools/
     """
+
     name: str = Field(..., description="Tool name (must be unique within server)")
     description: str = Field(..., description="Tool description")
     input_schema: Dict[str, Any] = Field(
         ...,
         description="JSON Schema for tool input (MCP Tool spec)",
-        examples=[{
-            "type": "object",
-            "properties": {
-                "param1": {
-                    "type": "string",
-                    "description": "First parameter"
+        examples=[
+            {
+                "type": "object",
+                "properties": {
+                    "param1": {"type": "string", "description": "First parameter"},
+                    "param2": {"type": "number", "description": "Second parameter"},
                 },
-                "param2": {
-                    "type": "number",
-                    "description": "Second parameter"
-                }
-            },
-            "required": ["param1"]
-        }]
+                "required": ["param1"],
+            }
+        ],
     )
     uipath_process_name: Optional[str] = Field(
-        None,
-        description="UiPath process name to execute (optional)"
+        None, description="UiPath process name to execute (optional)"
     )
     uipath_folder_path: Optional[str] = Field(
-        None,
-        description="UiPath folder path (optional)"
+        None, description="UiPath folder path (optional)"
     )
     uipath_folder_id: Optional[str] = Field(
-        None,
-        description="UiPath folder ID (optional)"
+        None, description="UiPath folder ID (optional)"
     )
 
 
 class ToolUpdate(BaseModel):
     """Request model for updating an MCP tool."""
+
     description: Optional[str] = Field(None, description="Tool description")
     input_schema: Optional[Dict[str, Any]] = Field(
-        None,
-        description="JSON Schema for tool input"
+        None, description="JSON Schema for tool input"
     )
-    uipath_process_name: Optional[str] = Field(
-        None,
-        description="UiPath process name"
-    )
-    uipath_folder_path: Optional[str] = Field(
-        None,
-        description="UiPath folder path"
-    )
-    uipath_folder_id: Optional[str] = Field(
-        None,
-        description="UiPath folder ID"
-    )
+    uipath_process_name: Optional[str] = Field(None, description="UiPath process name")
+    uipath_folder_path: Optional[str] = Field(None, description="UiPath folder path")
+    uipath_folder_id: Optional[str] = Field(None, description="UiPath folder ID")
 
 
 class ToolResponse(BaseModel):
     """Response model for MCP tool data."""
+
     id: int
     server_id: int
     name: str
@@ -177,16 +171,18 @@ class ToolResponse(BaseModel):
 
 # ==================== Tool Execution Models ====================
 
+
 class ToolExecute(BaseModel):
     """Request model for executing a tool."""
+
     arguments: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Arguments for tool execution"
+        default_factory=dict, description="Arguments for tool execution"
     )
 
 
 class ToolExecuteResponse(BaseModel):
     """Response model for tool execution."""
+
     success: bool
     job_id: Optional[str] = None
     status: Optional[str] = None
