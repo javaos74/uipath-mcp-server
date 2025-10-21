@@ -31,13 +31,41 @@ class Database:
                     role TEXT NOT NULL DEFAULT 'user',
                     is_active BOOLEAN DEFAULT 1,
                     uipath_url TEXT,
+                    uipath_auth_type TEXT DEFAULT 'pat',
                     uipath_access_token TEXT,
+                    uipath_client_id TEXT,
+                    uipath_client_secret TEXT,
                     uipath_folder_path TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """
             )
+
+            # Add OAuth columns if they don't exist (migration)
+            try:
+                await db.execute(
+                    "ALTER TABLE users ADD COLUMN uipath_client_id TEXT"
+                )
+                await db.commit()
+            except aiosqlite.OperationalError:
+                pass
+
+            try:
+                await db.execute(
+                    "ALTER TABLE users ADD COLUMN uipath_client_secret TEXT"
+                )
+                await db.commit()
+            except aiosqlite.OperationalError:
+                pass
+
+            try:
+                await db.execute(
+                    "ALTER TABLE users ADD COLUMN uipath_auth_type TEXT DEFAULT 'pat'"
+                )
+                await db.commit()
+            except aiosqlite.OperationalError:
+                pass
 
             # MCP Server endpoints table (with user ownership)
             await db.execute(
@@ -180,7 +208,10 @@ class Database:
                     "role": row["role"],
                     "is_active": bool(row["is_active"]),
                     "uipath_url": row["uipath_url"],
+                    "uipath_auth_type": row.get("uipath_auth_type", "pat"),
                     "uipath_access_token": row["uipath_access_token"],
+                    "uipath_client_id": row.get("uipath_client_id"),
+                    "uipath_client_secret": row.get("uipath_client_secret"),
                     "uipath_folder_path": row["uipath_folder_path"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
@@ -209,7 +240,10 @@ class Database:
                     "role": row["role"],
                     "is_active": bool(row["is_active"]),
                     "uipath_url": row["uipath_url"],
+                    "uipath_auth_type": row.get("uipath_auth_type", "pat"),
                     "uipath_access_token": row["uipath_access_token"],
+                    "uipath_client_id": row.get("uipath_client_id"),
+                    "uipath_client_secret": row.get("uipath_client_secret"),
                     "uipath_folder_path": row["uipath_folder_path"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
@@ -220,14 +254,20 @@ class Database:
         self,
         user_id: int,
         uipath_url: Optional[str] = None,
+        uipath_auth_type: Optional[str] = None,
         uipath_access_token: Optional[str] = None,
+        uipath_client_id: Optional[str] = None,
+        uipath_client_secret: Optional[str] = None,
     ) -> bool:
         """Update user's UiPath configuration.
 
         Args:
             user_id: User ID
             uipath_url: UiPath Cloud URL
+            uipath_auth_type: Authentication type ('pat' or 'oauth')
             uipath_access_token: UiPath Personal Access Token
+            uipath_client_id: OAuth Client ID
+            uipath_client_secret: OAuth Client Secret
 
         Returns:
             True if updated, False if not found
@@ -238,9 +278,18 @@ class Database:
         if uipath_url is not None:
             updates.append("uipath_url = ?")
             params.append(uipath_url)
+        if uipath_auth_type is not None:
+            updates.append("uipath_auth_type = ?")
+            params.append(uipath_auth_type)
         if uipath_access_token is not None:
             updates.append("uipath_access_token = ?")
             params.append(uipath_access_token)
+        if uipath_client_id is not None:
+            updates.append("uipath_client_id = ?")
+            params.append(uipath_client_id)
+        if uipath_client_secret is not None:
+            updates.append("uipath_client_secret = ?")
+            params.append(uipath_client_secret)
 
         if not updates:
             return False

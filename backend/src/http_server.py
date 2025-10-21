@@ -212,7 +212,10 @@ async def update_uipath_config(request):
         await db.update_user_uipath_config(
             user_id=user.id,
             uipath_url=config.uipath_url,
+            uipath_auth_type=config.uipath_auth_type,
             uipath_access_token=config.uipath_access_token,
+            uipath_client_id=config.uipath_client_id,
+            uipath_client_secret=config.uipath_client_secret,
         )
 
         # Get updated user

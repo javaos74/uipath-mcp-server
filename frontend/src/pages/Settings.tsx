@@ -5,11 +5,18 @@ import { useAuthStore } from '@/store/authStore'
 import type { UiPathConfig } from '@/types'
 import './Settings.css'
 
+type AuthType = 'pat' | 'oauth'
+
 export default function Settings() {
   const { user, updateUser } = useAuthStore()
+  const [authType, setAuthType] = useState<AuthType>(user?.uipath_auth_type || 'pat')
   const [formData, setFormData] = useState<UiPathConfig>({
     uipath_url: user?.uipath_url || '',
     uipath_access_token: '',
+  })
+  const [oauthData, setOauthData] = useState({
+    client_id: '',
+    client_secret: '',
   })
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
@@ -31,7 +38,22 @@ export default function Settings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateMutation.mutate(formData)
+    
+    if (authType === 'pat') {
+      updateMutation.mutate({
+        uipath_url: formData.uipath_url,
+        uipath_auth_type: 'pat',
+        uipath_access_token: formData.uipath_access_token,
+      })
+    } else {
+      // OAuth: combine URL with OAuth credentials
+      updateMutation.mutate({
+        uipath_url: formData.uipath_url,
+        uipath_auth_type: 'oauth',
+        uipath_client_id: oauthData.client_id,
+        uipath_client_secret: oauthData.client_secret,
+      })
+    }
   }
 
   return (
@@ -78,27 +100,91 @@ export default function Settings() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="uipath_access_token">UiPath Personal Access Token (PAT)</label>
-            <input
-              id="uipath_access_token"
-              type="password"
-              className="input"
-              placeholder={
-                user?.has_uipath_token
-                  ? '••••••••••••••••'
-                  : 'No PAT found - Enter your UiPath PAT'
-              }
-              value={formData.uipath_access_token}
-              onChange={(e) =>
-                setFormData({ ...formData, uipath_access_token: e.target.value })
-              }
-            />
-            <small className="form-help">
-              {user?.has_uipath_token
-                ? 'Current: ••••••••••••••••  (stored securely)'
-                : 'No PAT configured. Your PAT will be stored securely.'}
-            </small>
+            <label>Authentication Type</label>
+            <div className="radio-group">
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="authType"
+                  value="pat"
+                  checked={authType === 'pat'}
+                  onChange={(e) => setAuthType(e.target.value as AuthType)}
+                />
+                <span>Personal Access Token (PAT)</span>
+              </label>
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="authType"
+                  value="oauth"
+                  checked={authType === 'oauth'}
+                  onChange={(e) => setAuthType(e.target.value as AuthType)}
+                />
+                <span>OAuth 2.0 (Client Credentials)</span>
+              </label>
+            </div>
           </div>
+
+          {authType === 'pat' ? (
+            <div className="form-group">
+              <label htmlFor="uipath_access_token">UiPath Personal Access Token (PAT)</label>
+              <input
+                id="uipath_access_token"
+                type="password"
+                className="input"
+                placeholder={
+                  user?.has_uipath_token
+                    ? '••••••••••••••••'
+                    : 'No PAT found - Enter your UiPath PAT'
+                }
+                value={formData.uipath_access_token}
+                onChange={(e) =>
+                  setFormData({ ...formData, uipath_access_token: e.target.value })
+                }
+              />
+              <small className="form-help">
+                {user?.has_uipath_token
+                  ? 'Current: ••••••••••••••••  (stored securely)'
+                  : 'No PAT configured. Your PAT will be stored securely.'}
+              </small>
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label htmlFor="client_id">OAuth Client ID</label>
+                <input
+                  id="client_id"
+                  type="text"
+                  className="input"
+                  placeholder="Enter your OAuth Client ID"
+                  value={oauthData.client_id}
+                  onChange={(e) =>
+                    setOauthData({ ...oauthData, client_id: e.target.value })
+                  }
+                />
+                <small className="form-help">
+                  The Client ID from your UiPath OAuth application
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="client_secret">OAuth Client Secret</label>
+                <input
+                  id="client_secret"
+                  type="password"
+                  className="input"
+                  placeholder="Enter your OAuth Client Secret"
+                  value={oauthData.client_secret}
+                  onChange={(e) =>
+                    setOauthData({ ...oauthData, client_secret: e.target.value })
+                  }
+                />
+                <small className="form-help">
+                  The Client Secret will be stored securely and used to obtain access tokens
+                </small>
+              </div>
+            </>
+          )}
 
           {success && <div className="success">{success}</div>}
           {error && <div className="error">{error}</div>}

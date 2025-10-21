@@ -28,6 +28,7 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     uipath_url: Optional[str] = None
+    uipath_auth_type: Optional[str] = "pat"
     has_uipath_token: bool = False
     created_at: str
     updated_at: str
@@ -45,9 +46,21 @@ class UiPathConfigUpdate(BaseModel):
         None,
         description="UiPath Cloud URL (e.g., https://cloud.uipath.com/account/tenant)"
     )
+    uipath_auth_type: Optional[str] = Field(
+        None,
+        description="Authentication type: 'pat' or 'oauth'"
+    )
     uipath_access_token: Optional[str] = Field(
         None,
         description="UiPath Personal Access Token (PAT)"
+    )
+    uipath_client_id: Optional[str] = Field(
+        None,
+        description="OAuth Client ID for UiPath authentication"
+    )
+    uipath_client_secret: Optional[str] = Field(
+        None,
+        description="OAuth Client Secret for UiPath authentication"
     )
 
 
