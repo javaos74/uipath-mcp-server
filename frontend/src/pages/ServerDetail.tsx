@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { serversAPI, toolsAPI, uipathAPI } from '@/lib/api'
-import type { MCPTool, MCPToolCreate, UiPathProcess } from '@/types'
+import type { MCPTool, MCPToolCreate, UiPathProcess, UiPathFolder } from '@/types'
 import './ServerDetail.css'
 
 export default function ServerDetail() {
@@ -64,7 +64,7 @@ export default function ServerDetail() {
         </div>
       ) : (
         <div className="tools-list">
-          {toolsData.tools.map((tool) => (
+          {toolsData.tools.map((tool: MCPTool) => (
             <div key={tool.id} className="tool-card">
               <div className="tool-header">
                 <h3>{tool.name}</h3>
@@ -253,7 +253,7 @@ function UiPathProcessPicker({
     createMutation.mutate(toolData)
   }
 
-  const handleParameterChange = (index: number, field: string, value: any) => {
+  const handleParameterChange = (index: number, field: string, value: string | boolean) => {
     const newParams = [...parameters]
     newParams[index] = { ...newParams[index], [field]: value }
     setParameters(newParams)
@@ -281,7 +281,7 @@ function UiPathProcessPicker({
                   <p className="empty-message">No folders found. Please check your UiPath configuration.</p>
                 ) : (
                   <div className="folders">
-                    {foldersData.folders.map((folder) => (
+                    {foldersData.folders.map((folder: UiPathFolder) => (
                       <div
                         key={folder.id}
                         className="folder-item"
@@ -318,7 +318,7 @@ function UiPathProcessPicker({
                     <p className="empty-message">No processes found in this folder.</p>
                   ) : (
                     <div className="processes">
-                      {processesData.processes.map((process) => (
+                      {processesData.processes.map((process: UiPathProcess) => (
                         <div
                           key={process.id}
                           className={`process-item ${selectedProcess?.id === process.id ? 'selected' : ''}`}
@@ -488,7 +488,7 @@ function ToolEditor({
     },
   })
 
-  const handleParameterChange = (index: number, field: string, value: any) => {
+  const handleParameterChange = (index: number, field: string, value: string | boolean) => {
     const newParams = [...parameters]
     newParams[index] = { ...newParams[index], [field]: value }
     setParameters(newParams)

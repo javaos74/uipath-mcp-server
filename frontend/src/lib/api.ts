@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { MCPServerCreate, MCPToolCreate } from '@/types'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',
@@ -36,7 +37,7 @@ export const authAPI = {
     const response = await api.post('/auth/register', data)
     return response.data
   },
-  updateUiPathConfig: async (config: any) => {
+  updateUiPathConfig: async (config: { uipath_url?: string; uipath_access_token?: string }) => {
     const response = await api.put('/auth/uipath-config', config)
     return response.data
   },
@@ -47,7 +48,7 @@ export const serversAPI = {
     const response = await api.get('/api/servers')
     return response.data
   },
-  create: async (data: any) => {
+  create: async (data: MCPServerCreate) => {
     const response = await api.post('/api/servers', data)
     return response.data
   },
@@ -74,11 +75,11 @@ export const toolsAPI = {
     const response = await api.get(`/api/servers/${tenantName}/${serverName}/tools`)
     return response.data
   },
-  create: async (tenantName: string, serverName: string, toolData: any) => {
+  create: async (tenantName: string, serverName: string, toolData: MCPToolCreate) => {
     const response = await api.post(`/api/servers/${tenantName}/${serverName}/tools`, toolData)
     return response.data
   },
-  update: async (tenantName: string, serverName: string, toolId: string, toolData: any) => {
+  update: async (tenantName: string, serverName: string, toolId: string, toolData: Partial<MCPToolCreate>) => {
     const response = await api.put(`/api/servers/${tenantName}/${serverName}/tools/${toolId}`, toolData)
     return response.data
   },

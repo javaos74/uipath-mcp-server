@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { serversAPI } from '@/lib/api'
-import type { MCPServerCreate } from '@/types'
+import type { MCPServerCreate, MCPServer } from '@/types'
 import './Dashboard.css'
 
 export default function Dashboard() {
@@ -50,7 +50,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="servers-grid">
-          {data.servers.map((server) => (
+          {data.servers.map((server: MCPServer) => (
             <div key={server.id} className="server-card">
               <div className="server-header">
                 <h3>{server.server_name}</h3>
