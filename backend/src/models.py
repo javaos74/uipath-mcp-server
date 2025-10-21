@@ -29,7 +29,9 @@ class UserResponse(BaseModel):
     is_active: bool
     uipath_url: Optional[str] = None
     uipath_auth_type: Optional[str] = "pat"
+    uipath_client_id: Optional[str] = None
     has_uipath_token: bool = False
+    has_oauth_credentials: bool = False
     created_at: str
     updated_at: str
 

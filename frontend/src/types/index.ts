@@ -6,7 +6,9 @@ export interface User {
   is_active: boolean
   uipath_url: string | null
   uipath_auth_type?: 'pat' | 'oauth'
+  uipath_client_id?: string | null
   has_uipath_token: boolean
+  has_oauth_credentials: boolean
   created_at: string
   updated_at: string
 }

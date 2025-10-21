@@ -27,8 +27,9 @@ export default function Settings() {
       updateUser(data)
       setSuccess('UiPath configuration updated successfully')
       setError('')
-      // Clear PAT field after successful update
+      // Clear sensitive fields after successful update
       setFormData({ ...formData, uipath_access_token: '' })
+      setOauthData({ client_id: '', client_secret: '' })
     },
     onError: (err: any) => {
       setError(err.response?.data?.error || 'Failed to update configuration')
@@ -156,14 +157,20 @@ export default function Settings() {
                   id="client_id"
                   type="text"
                   className="input"
-                  placeholder="Enter your OAuth Client ID"
+                  placeholder={
+                    user?.uipath_client_id
+                      ? user.uipath_client_id
+                      : 'Enter your OAuth Client ID'
+                  }
                   value={oauthData.client_id}
                   onChange={(e) =>
                     setOauthData({ ...oauthData, client_id: e.target.value })
                   }
                 />
                 <small className="form-help">
-                  The Client ID from your UiPath OAuth application
+                  {user?.uipath_client_id
+                    ? `Current: ${user.uipath_client_id}`
+                    : 'The Client ID from your UiPath OAuth application'}
                 </small>
               </div>
 
@@ -173,14 +180,20 @@ export default function Settings() {
                   id="client_secret"
                   type="password"
                   className="input"
-                  placeholder="Enter your OAuth Client Secret"
+                  placeholder={
+                    user?.has_oauth_credentials
+                      ? '••••••••••••••••'
+                      : 'Enter your OAuth Client Secret'
+                  }
                   value={oauthData.client_secret}
                   onChange={(e) =>
                     setOauthData({ ...oauthData, client_secret: e.target.value })
                   }
                 />
                 <small className="form-help">
-                  The Client Secret will be stored securely and used to obtain access tokens
+                  {user?.has_oauth_credentials
+                    ? 'Current: ••••••••••••••••  (stored securely)'
+                    : 'The Client Secret will be stored securely and used to obtain access tokens'}
                 </small>
               </div>
             </>

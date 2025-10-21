@@ -120,8 +120,13 @@ async def register(request):
 
         # Get created user
         user = await db.get_user_by_id(user_id)
-        user_data = {k: v for k, v in user.items() if k != "hashed_password"}
+        user_data = {
+            k: v
+            for k, v in user.items()
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+        }
         user_data["has_uipath_token"] = False  # New user has no token
+        user_data["has_oauth_credentials"] = False  # New user has no OAuth
         user_response = UserResponse(**user_data)
 
         logger.info(
@@ -167,8 +172,15 @@ async def login(request):
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         )
 
-        user_data = {k: v for k, v in user.items() if k not in ["hashed_password", "uipath_access_token"]}
+        user_data = {
+            k: v
+            for k, v in user.items()
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+        }
         user_data["has_uipath_token"] = bool(user.get("uipath_access_token"))
+        user_data["has_oauth_credentials"] = bool(
+            user.get("uipath_client_id") and user.get("uipath_client_secret")
+        )
         user_response = UserResponse(**user_data)
 
         token_response = Token(access_token=access_token, user=user_response)
@@ -191,9 +203,12 @@ async def get_me(request):
     user_data = {
         k: v
         for k, v in user.model_dump().items()
-        if k not in ["hashed_password", "uipath_access_token"]
+        if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
     }
     user_data["has_uipath_token"] = bool(user.uipath_access_token)
+    user_data["has_oauth_credentials"] = bool(
+        user.uipath_client_id and user.uipath_client_secret
+    )
     user_response = UserResponse(**user_data)
     return JSONResponse(user_response.model_dump())
 
@@ -223,9 +238,12 @@ async def update_uipath_config(request):
         user_data = {
             k: v
             for k, v in updated_user.items()
-            if k not in ["hashed_password", "uipath_access_token"]
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
         }
         user_data["has_uipath_token"] = bool(updated_user.get("uipath_access_token"))
+        user_data["has_oauth_credentials"] = bool(
+            updated_user.get("uipath_client_id") and updated_user.get("uipath_client_secret")
+        )
         user_response = UserResponse(**user_data)
 
         return JSONResponse(user_response.model_dump())
