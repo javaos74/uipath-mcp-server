@@ -1,11 +1,28 @@
 import axios from 'axios'
-import type { MCPServerCreate, MCPToolCreate } from '@/types'
+import type {
+  LoginRequest,
+  RegisterRequest,
+  LoginResponse,
+  User,
+  MCPServer,
+  MCPServerCreate,
+  MCPTool,
+  MCPToolCreate,
+  UiPathConfig,
+} from '@/types'
+
+// In production (built), use relative URL (same origin as backend)
+// In development, use VITE_API_URL or default to localhost:8000
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8000')
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 })
 
-// Add request interceptor to include auth token
+// Request interceptor to add auth token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
@@ -14,12 +31,11 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Add response interceptor to handle auth errors
+// Response interceptor to handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear auth data and redirect to login
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       window.location.href = '/login'
@@ -28,74 +44,154 @@ api.interceptors.response.use(
   }
 )
 
+// Auth API
 export const authAPI = {
-  login: async (data: { username: string; password: string }) => {
-    const response = await api.post('/auth/login', data)
-    return response.data
-  },
-  register: async (data: { username: string; password: string; email: string }) => {
+  register: async (data: RegisterRequest): Promise<User> => {
     const response = await api.post('/auth/register', data)
     return response.data
   },
-  updateUiPathConfig: async (config: { uipath_url?: string; uipath_access_token?: string }) => {
-    const response = await api.put('/auth/uipath-config', config)
+
+  login: async (data: LoginRequest): Promise<LoginResponse> => {
+    const response = await api.post('/auth/login', data)
+    return response.data
+  },
+
+  getMe: async (): Promise<User> => {
+    const response = await api.get('/auth/me')
+    return response.data
+  },
+
+  updateUiPathConfig: async (data: UiPathConfig): Promise<User> => {
+    const response = await api.put('/auth/uipath-config', data)
     return response.data
   },
 }
 
+// Servers API
 export const serversAPI = {
-  list: async () => {
+  list: async (): Promise<{ count: number; servers: MCPServer[] }> => {
     const response = await api.get('/api/servers')
     return response.data
   },
-  create: async (data: MCPServerCreate) => {
+
+  create: async (data: MCPServerCreate): Promise<MCPServer> => {
     const response = await api.post('/api/servers', data)
     return response.data
   },
-  delete: async (tenantName: string, serverName: string) => {
-    const response = await api.delete(`/api/servers/${tenantName}/${serverName}`)
+
+  get: async (tenantName: string, serverName: string): Promise<MCPServer> => {
+    const response = await api.get(`/api/servers/${tenantName}/${serverName}`)
     return response.data
   },
-  getToken: async (tenantName: string, serverName: string) => {
+
+  update: async (
+    tenantName: string,
+    serverName: string,
+    data: Partial<MCPServerCreate>
+  ): Promise<MCPServer> => {
+    const response = await api.put(`/api/servers/${tenantName}/${serverName}`, data)
+    return response.data
+  },
+
+  delete: async (tenantName: string, serverName: string): Promise<void> => {
+    await api.delete(`/api/servers/${tenantName}/${serverName}`)
+  },
+
+  generateToken: async (
+    tenantName: string,
+    serverName: string
+  ): Promise<{ token: string; message: string }> => {
+    const response = await api.post(
+      `/api/servers/${tenantName}/${serverName}/token`
+    )
+    return response.data
+  },
+
+  getToken: async (
+    tenantName: string,
+    serverName: string
+  ): Promise<{ token: string | null; message?: string }> => {
     const response = await api.get(`/api/servers/${tenantName}/${serverName}/token`)
     return response.data
   },
-  generateToken: async (tenantName: string, serverName: string) => {
-    const response = await api.post(`/api/servers/${tenantName}/${serverName}/token`)
-    return response.data
-  },
-  revokeToken: async (tenantName: string, serverName: string) => {
-    const response = await api.delete(`/api/servers/${tenantName}/${serverName}/token`)
+
+  revokeToken: async (
+    tenantName: string,
+    serverName: string
+  ): Promise<{ message: string }> => {
+    const response = await api.delete(
+      `/api/servers/${tenantName}/${serverName}/token`
+    )
     return response.data
   },
 }
 
+// Tools API
 export const toolsAPI = {
-  list: async (tenantName: string, serverName: string) => {
+  list: async (
+    tenantName: string,
+    serverName: string
+  ): Promise<{ count: number; tools: MCPTool[] }> => {
     const response = await api.get(`/api/servers/${tenantName}/${serverName}/tools`)
     return response.data
   },
-  create: async (tenantName: string, serverName: string, toolData: MCPToolCreate) => {
-    const response = await api.post(`/api/servers/${tenantName}/${serverName}/tools`, toolData)
+
+  create: async (
+    tenantName: string,
+    serverName: string,
+    data: MCPToolCreate
+  ): Promise<MCPTool> => {
+    const response = await api.post(
+      `/api/servers/${tenantName}/${serverName}/tools`,
+      data
+    )
     return response.data
   },
-  update: async (tenantName: string, serverName: string, toolId: string, toolData: Partial<MCPToolCreate>) => {
-    const response = await api.put(`/api/servers/${tenantName}/${serverName}/tools/${toolId}`, toolData)
+
+  get: async (
+    tenantName: string,
+    serverName: string,
+    toolName: string
+  ): Promise<MCPTool> => {
+    const response = await api.get(
+      `/api/servers/${tenantName}/${serverName}/tools/${toolName}`
+    )
     return response.data
   },
-  delete: async (tenantName: string, serverName: string, toolId: string) => {
-    const response = await api.delete(`/api/servers/${tenantName}/${serverName}/tools/${toolId}`)
+
+  update: async (
+    tenantName: string,
+    serverName: string,
+    toolName: string,
+    data: Partial<MCPToolCreate>
+  ): Promise<MCPTool> => {
+    const response = await api.put(
+      `/api/servers/${tenantName}/${serverName}/tools/${toolName}`,
+      data
+    )
+    return response.data
+  },
+
+  delete: async (
+    tenantName: string,
+    serverName: string,
+    toolName: string
+  ): Promise<void> => {
+    await api.delete(`/api/servers/${tenantName}/${serverName}/tools/${toolName}`)
+  },
+}
+
+// UiPath API
+export const uipathAPI = {
+  listFolders: async (): Promise<{ count: number; folders: any[] }> => {
+    const response = await api.get('/api/uipath/folders')
+    return response.data
+  },
+
+  listProcesses: async (folderId: string): Promise<{ count: number; processes: any[] }> => {
+    const response = await api.get(`/api/uipath/processes?folder_id=${folderId}`)
     return response.data
   },
 }
 
-export const uipathAPI = {
-  listFolders: async () => {
-    const response = await api.get('/api/uipath/folders')
-    return response.data
-  },
-  listProcesses: async (folderId: string) => {
-    const response = await api.get(`/api/uipath/processes?folderId=${folderId}`)
-    return response.data
-  },
-}
+export default api
