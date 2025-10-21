@@ -221,7 +221,12 @@ async def update_uipath_config(request):
 
     try:
         data = await request.json()
+        logger.info(f"Received UiPath config update: {data}")
         config = UiPathConfigUpdate(**data)
+        
+        logger.info(f"Parsed config - auth_type: {config.uipath_auth_type}, "
+                   f"client_id: {config.uipath_client_id}, "
+                   f"has_client_secret: {bool(config.uipath_client_secret)}")
 
         # Update UiPath configuration
         await db.update_user_uipath_config(

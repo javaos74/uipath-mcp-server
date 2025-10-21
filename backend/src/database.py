@@ -44,9 +44,7 @@ class Database:
 
             # Add OAuth columns if they don't exist (migration)
             try:
-                await db.execute(
-                    "ALTER TABLE users ADD COLUMN uipath_client_id TEXT"
-                )
+                await db.execute("ALTER TABLE users ADD COLUMN uipath_client_id TEXT")
                 await db.commit()
             except aiosqlite.OperationalError:
                 pass
@@ -277,19 +275,22 @@ class Database:
 
         if uipath_url is not None:
             updates.append("uipath_url = ?")
-            params.append(uipath_url)
+            params.append(uipath_url if uipath_url else None)
         if uipath_auth_type is not None:
             updates.append("uipath_auth_type = ?")
             params.append(uipath_auth_type)
         if uipath_access_token is not None:
+            # Empty string means clear the token
             updates.append("uipath_access_token = ?")
-            params.append(uipath_access_token)
+            params.append(uipath_access_token if uipath_access_token else None)
         if uipath_client_id is not None:
+            # Empty string means clear the client ID
             updates.append("uipath_client_id = ?")
-            params.append(uipath_client_id)
+            params.append(uipath_client_id if uipath_client_id else None)
         if uipath_client_secret is not None:
+            # Empty string means clear the client secret
             updates.append("uipath_client_secret = ?")
-            params.append(uipath_client_secret)
+            params.append(uipath_client_secret if uipath_client_secret else None)
 
         if not updates:
             return False
@@ -297,11 +298,17 @@ class Database:
         updates.append("updated_at = CURRENT_TIMESTAMP")
         params.append(user_id)
 
+        # Log the SQL query for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        sql_query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+        logger.info(f"Executing SQL: {sql_query}")
+        logger.info(f"With params: {params}")
+
         async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(
-                f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params
-            )
+            cursor = await db.execute(sql_query, params)
             await db.commit()
+            logger.info(f"Updated {cursor.rowcount} rows")
             return cursor.rowcount > 0
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:

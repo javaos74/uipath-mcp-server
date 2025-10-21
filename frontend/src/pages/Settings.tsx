@@ -45,6 +45,8 @@ export default function Settings() {
       const payload: UiPathConfig = {
         uipath_url: formData.uipath_url,
         uipath_auth_type: 'pat',
+        uipath_client_id: '',
+        uipath_client_secret: '',
       }
       
       // Only include PAT if it's not empty (user wants to update it)
@@ -52,29 +54,22 @@ export default function Settings() {
         payload.uipath_access_token = formData.uipath_access_token
       }
       
-      // Clear OAuth credentials when switching to PAT
-      payload.uipath_client_id = ''
-      payload.uipath_client_secret = ''
-      
+      console.log('Submitting PAT config:', payload)
       updateMutation.mutate(payload)
     } else {
       // OAuth mode: send OAuth credentials, clear PAT
       const payload: UiPathConfig = {
         uipath_url: formData.uipath_url,
         uipath_auth_type: 'oauth',
+        uipath_access_token: '',
+        uipath_client_id: oauthData.client_id || '',
+        uipath_client_secret: oauthData.client_secret || '',
       }
       
-      // Only include OAuth fields if they're not empty
-      if (oauthData.client_id) {
-        payload.uipath_client_id = oauthData.client_id
-      }
-      if (oauthData.client_secret) {
-        payload.uipath_client_secret = oauthData.client_secret
-      }
-      
-      // Clear PAT when switching to OAuth
-      payload.uipath_access_token = ''
-      
+      console.log('Submitting OAuth config:', {
+        ...payload,
+        uipath_client_secret: payload.uipath_client_secret ? '***' : ''
+      })
       updateMutation.mutate(payload)
     }
   }
