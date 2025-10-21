@@ -58,13 +58,13 @@ export default function ServerDetail() {
 
       <TokenManager tenantName={tenantName!} serverName={serverName!} />
 
-      {toolsData?.tools.length === 0 ? (
+      {!toolsData?.tools || toolsData.tools.length === 0 ? (
         <div className="empty-state">
           <p>No tools yet. Add a tool from your UiPath processes!</p>
         </div>
       ) : (
         <div className="tools-list">
-          {toolsData?.tools.map((tool) => (
+          {toolsData.tools.map((tool) => (
             <div key={tool.id} className="tool-card">
               <div className="tool-header">
                 <h3>{tool.name}</h3>
@@ -277,11 +277,11 @@ function UiPathProcessPicker({
             {!selectedFolder ? (
               <div className="folder-list">
                 <h3>Step 1: Select a Folder</h3>
-                {foldersData?.folders.length === 0 ? (
+                {!foldersData?.folders || foldersData.folders.length === 0 ? (
                   <p className="empty-message">No folders found. Please check your UiPath configuration.</p>
                 ) : (
                   <div className="folders">
-                    {foldersData?.folders.map((folder) => (
+                    {foldersData.folders.map((folder) => (
                       <div
                         key={folder.id}
                         className="folder-item"
@@ -314,11 +314,11 @@ function UiPathProcessPicker({
                     </button>
                     <h3>Step 2: Select a Process from {selectedFolder.name}</h3>
                   </div>
-                  {processesData?.processes.length === 0 ? (
+                  {!processesData?.processes || processesData.processes.length === 0 ? (
                     <p className="empty-message">No processes found in this folder.</p>
                   ) : (
                     <div className="processes">
-                      {processesData?.processes.map((process) => (
+                      {processesData.processes.map((process) => (
                         <div
                           key={process.id}
                           className={`process-item ${selectedProcess?.id === process.id ? 'selected' : ''}`}

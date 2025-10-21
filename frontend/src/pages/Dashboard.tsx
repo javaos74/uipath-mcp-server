@@ -44,13 +44,13 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {data?.servers.length === 0 ? (
+      {!data?.servers || data.servers.length === 0 ? (
         <div className="empty-state">
           <p>No MCP servers yet. Create your first server to get started!</p>
         </div>
       ) : (
         <div className="servers-grid">
-          {data?.servers.map((server) => (
+          {data.servers.map((server) => (
             <div key={server.id} className="server-card">
               <div className="server-header">
                 <h3>{server.server_name}</h3>
