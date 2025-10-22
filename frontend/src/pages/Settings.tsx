@@ -25,8 +25,21 @@ export default function Settings() {
     mutationFn: authAPI.updateUiPathConfig,
     onSuccess: (data) => {
       updateUser(data)
-      setSuccess('UiPath configuration updated successfully')
-      setError('')
+      // Sync local UI state with latest server values
+      setAuthType((data?.uipath_auth_type as AuthType) || 'pat')
+      setFormData((prev) => ({ ...prev, uipath_url: data?.uipath_url || '' }))
+      // If backend included a message (e.g., OAuth token not generated), show it as error
+      if (data?.message) {
+        setError(data.message)
+        setSuccess('')
+      } else if (data?.has_uipath_token || authType === 'pat') {
+        setSuccess('UiPath configuration updated successfully')
+        setError('')
+      } else {
+        // OAuth selected but no token present and no message: show a caution
+        setError('Configuration saved, but no UiPath token was generated.')
+        setSuccess('')
+      }
       // Clear sensitive fields after successful update
       setFormData({ ...formData, uipath_access_token: '' })
       setOauthData({ client_id: '', client_secret: '' })

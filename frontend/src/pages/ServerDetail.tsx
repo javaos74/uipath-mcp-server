@@ -167,6 +167,8 @@ function UiPathProcessPicker({
   onSuccess: () => void
 }) {
   const [selectedFolder, setSelectedFolder] = useState<any | null>(null)
+  const [folderQuery, setFolderQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedProcess, setSelectedProcess] = useState<UiPathProcess | null>(null)
   const [toolName, setToolName] = useState('')
   const [toolDescription, setToolDescription] = useState('')
@@ -179,8 +181,8 @@ function UiPathProcessPicker({
   const [error, setError] = useState('')
 
   const { data: foldersData, isLoading: foldersLoading, error: foldersError } = useQuery({
-    queryKey: ['uipath-folders'],
-    queryFn: uipathAPI.listFolders,
+    queryKey: ['uipath-folders', searchQuery],
+    queryFn: () => uipathAPI.listFolders(searchQuery || undefined),
   })
 
   const { data: processesData, isLoading: processesLoading, error: processesError } = useQuery({
@@ -199,6 +201,15 @@ function UiPathProcessPicker({
       setError(err.response?.data?.error || 'Failed to create tool')
     },
   })
+
+  const handleSearch = () => {
+    setSearchQuery(folderQuery)
+  }
+
+  const handleClearSearch = () => {
+    setFolderQuery('')
+    setSearchQuery('')
+  }
 
   const handleSelectProcess = (process: UiPathProcess) => {
     setSelectedProcess(process)
@@ -277,10 +288,67 @@ function UiPathProcessPicker({
             {!selectedFolder ? (
               <div className="folder-list">
                 <h3>Step 1: Select a Folder</h3>
+                <div className="form-group" style={{ marginTop: 8 }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Search folders by name..."
+                      value={folderQuery}
+                      onChange={(e) => setFolderQuery(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSearch()
+                        }
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSearch}
+                      disabled={isLoading}
+                      style={{ minWidth: '80px' }}
+                    >
+                      {isLoading ? '...' : 'Search'}
+                    </button>
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleClearSearch}
+                        style={{ minWidth: '80px' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
                 {!foldersData?.folders || foldersData.folders.length === 0 ? (
                   <p className="empty-message">No folders found. Please check your UiPath configuration.</p>
                 ) : (
                   <div className="folders">
+                    {searchQuery && foldersData?.matched && foldersData.matched.length > 0 && (
+                      <>
+                        <div className="section-subtitle">Matches</div>
+                        {foldersData.matched.map((folder: UiPathFolder) => (
+                          <div
+                            key={`m-${folder.id}`}
+                            className="folder-item"
+                            onClick={() => setSelectedFolder(folder)}
+                          >
+                            <div className="folder-name">{folder.name}</div>
+                            {folder.full_name && (
+                              <div className="folder-path">{folder.full_name}</div>
+                            )}
+                            {folder.description && (
+                              <div className="folder-description">{folder.description}</div>
+                            )}
+                          </div>
+                        ))}
+                        <div className="section-subtitle" style={{ marginTop: 12 }}>All Folders</div>
+                      </>
+                    )}
                     {foldersData.folders.map((folder: UiPathFolder) => (
                       <div
                         key={folder.id}

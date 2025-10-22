@@ -10,6 +10,8 @@ from mcp.server.streamable_http import StreamableHTTPServerTransport
 import json
 import logging
 import os
+import anyio
+import asyncio
 from pathlib import Path
 from datetime import timedelta
 
@@ -36,6 +38,7 @@ from .models import (
     ToolCreate,
     ToolUpdate,
 )
+from .oauth import exchange_client_credentials_for_token
 
 
 # No-op ASGI callable for handlers that already sent response
@@ -57,6 +60,29 @@ mcp_servers = {}
 
 # Store SSE transports per endpoint
 sse_transports = {}
+
+# Store Streamable HTTP transports and background tasks per endpoint
+streamable_transports = {}
+streamable_tasks = {}
+
+# Lightweight init coordination (best-effort) to reduce race on first request
+sse_init_started = {}
+streamable_init_started = {}
+streamable_started_at = {}
+
+def _mask_authorization(headers: dict) -> dict:
+    try:
+        masked = dict(headers)
+        auth = masked.get("authorization") or masked.get("Authorization")
+        if auth and isinstance(auth, str):
+            parts = auth.split()
+            if len(parts) == 2:
+                token = parts[1]
+                masked_token = token[:6] + "..." if len(token) > 6 else "***"
+                masked["Authorization"] = f"Bearer {masked_token}"
+        return masked
+    except Exception:
+        return headers
 
 
 async def startup():
@@ -228,7 +254,7 @@ async def update_uipath_config(request):
                    f"client_id: {config.uipath_client_id}, "
                    f"has_client_secret: {bool(config.uipath_client_secret)}")
 
-        # Update UiPath configuration
+        # First persist any provided fields
         await db.update_user_uipath_config(
             user_id=user.id,
             uipath_url=config.uipath_url,
@@ -237,6 +263,44 @@ async def update_uipath_config(request):
             uipath_client_id=config.uipath_client_id,
             uipath_client_secret=config.uipath_client_secret,
         )
+
+        # If switching to OAuth and we have credentials, exchange for access token
+        try:
+            if (
+                (config.uipath_auth_type == "oauth")
+                or (
+                    not config.uipath_auth_type
+                    and user.uipath_auth_type == "oauth"
+                )
+            ):
+                # Fetch fresh user data to ensure we have stored values
+                current = await db.get_user_by_id(user.id)
+                uipath_url = config.uipath_url or current.get("uipath_url")
+                client_id = config.uipath_client_id or current.get("uipath_client_id")
+                client_secret = (
+                    config.uipath_client_secret or current.get("uipath_client_secret")
+                )
+
+                if uipath_url and client_id and client_secret:
+                    token_resp = await exchange_client_credentials_for_token(
+                        uipath_url=uipath_url,
+                        client_id=client_id,
+                        client_secret=client_secret,
+                    )
+                    access_token = token_resp.get("access_token")
+                    if access_token:
+                        await db.update_user_uipath_config(
+                            user_id=user.id,
+                            uipath_access_token=access_token,
+                        )
+                        logger.info("Stored OAuth access token for user")
+                else:
+                    logger.info(
+                        "OAuth selected but missing url/client_id/client_secret; skipping token exchange"
+                    )
+        except Exception as e:
+            # Don't fail the save entirely; report error in response below
+            logger.warning(f"OAuth token exchange failed: {e}")
 
         # Get updated user
         updated_user = await db.get_user_by_id(user.id)
@@ -251,7 +315,26 @@ async def update_uipath_config(request):
         )
         user_response = UserResponse(**user_data)
 
-        return JSONResponse(user_response.model_dump())
+        resp = user_response.model_dump()
+        # If the token is missing after an OAuth attempt, include a hint
+        if (
+            (config.uipath_auth_type == "oauth")
+            and not updated_user.get("uipath_access_token")
+        ):
+            # Emit an error log to aid debugging when token wasn't minted
+            logger.error(
+                "OAuth token not generated after save (auth_type=%s, has_url=%s, has_client_id=%s, has_client_secret=%s)",
+                updated_user.get("uipath_auth_type"),
+                bool(updated_user.get("uipath_url")),
+                bool(updated_user.get("uipath_client_id")),
+                bool(updated_user.get("uipath_client_secret")),
+            )
+            resp["message"] = (
+                "OAuth credentials saved. Token exchange did not complete; "
+                "ensure URL and client credentials are correct."
+            )
+
+        return JSONResponse(resp)
 
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
@@ -275,12 +358,31 @@ async def list_uipath_folders(request):
         from .uipath_client import UiPathClient
 
         client = UiPathClient()
+        # Optional search query parameter
+        q = request.query_params.get("q")
+        # Server-side search request (if provided)
+        matched = []
+        if q:
+            matched = await client.list_folders(
+                uipath_url=user_data["uipath_url"],
+                uipath_access_token=user_data["uipath_access_token"],
+                search=q,
+            )
+
+        # Always also return the full list as today
         folders = await client.list_folders(
             uipath_url=user_data["uipath_url"],
             uipath_access_token=user_data["uipath_access_token"],
         )
 
-        return JSONResponse({"count": len(folders), "folders": folders})
+        return JSONResponse(
+            {
+                "count": len(folders),
+                "folders": folders,
+                # Provide optional matched list if q present
+                **({"matched": matched, "matched_count": len(matched)} if q else {}),
+            }
+        )
 
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -342,7 +444,17 @@ async def sse_handler(request):
     """
     tenant_name = request.path_params["tenant_name"]
     server_name = request.path_params["server_name"]
-    logger.info(f"SSE connection request: {tenant_name}/{server_name}")
+    logger.info(
+        "[SSE] Incoming connection: path=%s method=%s query=%s",
+        request.url.path,
+        request.method,
+        str(request.url.query),
+    )
+    try:
+        masked_headers = _mask_authorization(dict(request.headers))
+        logger.debug("[SSE] Headers: %s", masked_headers)
+    except Exception:
+        pass
 
     # Check authentication
     if not await check_mcp_access(request, db, tenant_name, server_name):
@@ -355,7 +467,9 @@ async def sse_handler(request):
             status_code=403,
         )
 
+    logger.debug("[SSE] Getting/creating MCP server: %s/%s", tenant_name, server_name)
     mcp_server_instance = await get_or_create_mcp_server(tenant_name, server_name)
+    logger.debug("[SSE] MCP server ready: %s/%s -> %s", tenant_name, server_name, bool(mcp_server_instance))
 
     if not mcp_server_instance:
         logger.error(f"MCP server not found: {tenant_name}/{server_name}")
@@ -369,24 +483,32 @@ async def sse_handler(request):
     # SSE (Server-Sent Events) protocol
     key = f"{tenant_name}/{server_name}"
     if key not in sse_transports:
-        logger.info(f"Creating new SSE transport for {key}")
+        logger.info(f"[SSE] Creating new SSE transport for {key}")
         sse_transports[key] = SseServerTransport(
             f"/mcp/{tenant_name}/{server_name}/sse/messages"
         )
 
     sse = sse_transports[key]
 
-    logger.info(f"Starting SSE session for {key}")
+    logger.info(f"[SSE] Starting SSE session for {key}")
     # Handle the SSE connection directly
     async with sse.connect_sse(request.scope, request.receive, request._send) as (
         read_stream,
         write_stream,
     ):
+        logger.debug("[SSE] connect_sse opened for %s", key)
+        # Mark init started for this key to allow message POST handler to wait briefly
+        evt = sse_init_started.get(key)
+        if not evt:
+            evt = asyncio.Event()
+            sse_init_started[key] = evt
+        evt.set()
         # Run the MCP server session
+        logger.debug("[SSE] Running MCP server session (run) for %s", key)
         await mcp_server.run(
             read_stream, write_stream, mcp_server.create_initialization_options()
         )
-    logger.info(f"SSE session ended for {key}")
+    logger.info(f"[SSE] Session ended for {key}")
 
 
 async def http_streamable_post_handler(request):
@@ -405,7 +527,17 @@ async def http_streamable_post_handler(request):
     """
     tenant_name = request.path_params["tenant_name"]
     server_name = request.path_params["server_name"]
-    logger.info(f"HTTP Streamable POST request: {tenant_name}/{server_name}")
+    logger.info(
+        "[HTTP-Streamable] Incoming: path=%s method=%s query=%s",
+        request.url.path,
+        request.method,
+        str(request.url.query),
+    )
+    try:
+        masked_headers = _mask_authorization(dict(request.headers))
+        logger.debug("[HTTP-Streamable] Headers: %s", masked_headers)
+    except Exception:
+        pass
 
     # Check authentication
     if not await check_mcp_access(request, db, tenant_name, server_name):
@@ -418,7 +550,9 @@ async def http_streamable_post_handler(request):
             status_code=403,
         )
 
+    logger.debug("[HTTP-Streamable] Getting/creating MCP server: %s/%s", tenant_name, server_name)
     mcp_server_instance = await get_or_create_mcp_server(tenant_name, server_name)
+    logger.debug("[HTTP-Streamable] MCP server ready: %s/%s -> %s", tenant_name, server_name, bool(mcp_server_instance))
 
     if not mcp_server_instance:
         logger.error(f"MCP server not found: {tenant_name}/{server_name}")
@@ -440,9 +574,82 @@ async def http_streamable_post_handler(request):
         await request._send(message)
 
     logger.debug(f"Processing HTTP Streamable request for {tenant_name}/{server_name}")
-    streamable = StreamableHTTPServerTransport(mcp_session_id=None)
-    await streamable.handle_request(
-        request.scope, request.receive, tracking_send, mcp_server
+
+    key = f"{tenant_name}/{server_name}"
+    if key not in streamable_transports:
+        logger.info(f"[HTTP-Streamable] Creating transport for {key}")
+        streamable_transports[key] = StreamableHTTPServerTransport(mcp_session_id=None)
+
+        # Establish the connection BEFORE handling the first request to avoid race
+        connect_cm = streamable_transports[key].connect()
+        try:
+            logger.debug("[HTTP-Streamable] Opening connect().__aenter__ for %s", key)
+            read_stream, write_stream = await connect_cm.__aenter__()
+            logger.debug("[HTTP-Streamable] Stream established for %s", key)
+        except Exception:
+            logger.exception("Failed to open streamable connect()")
+            return JSONResponse({"error": "Failed to initialize stream"}, status_code=500)
+
+        async def run_streamable_session():
+            try:
+                logger.debug(
+                    "[HTTP-Streamable] run_streamable_session starting for %s", key
+                )
+                init_opts = mcp_server.create_initialization_options()
+                logger.debug(
+                    "[HTTP-Streamable] Initialization options for %s: %s",
+                    key,
+                    init_opts,
+                )
+                await mcp_server.run(
+                    read_stream,
+                    write_stream,
+                    init_opts,
+                )
+            except Exception:
+                logger.exception("Streamable session task error")
+            finally:
+                try:
+                    await connect_cm.__aexit__(None, None, None)
+                except Exception:
+                    logger.debug("Error during streamable connect() exit")
+                # Cleanup on exit
+                streamable_transports.pop(key, None)
+                streamable_tasks.pop(key, None)
+
+        # Mark init started
+        evt = streamable_init_started.get(key)
+        if not evt:
+            evt = asyncio.Event()
+            streamable_init_started[key] = evt
+        streamable_tasks[key] = asyncio.create_task(run_streamable_session())
+        evt.set()
+        # Record start time and small delay to let init handshake start
+        try:
+            import time
+            streamable_started_at[key] = time.monotonic()
+        except Exception:
+            pass
+        await asyncio.sleep(0.1)
+
+    streamable = streamable_transports[key]
+    try:
+        import time
+        started = streamable_started_at.get(key)
+        if started:
+            logger.debug(
+                "[HTTP-Streamable] Time since run task scheduled for %s: %.3fs",
+                key,
+                time.monotonic() - started,
+            )
+    except Exception:
+        pass
+    logger.debug("[HTTP-Streamable] Calling handle_request for %s", key)
+    await streamable.handle_request(request.scope, request.receive, tracking_send)
+    logger.debug(
+        "[HTTP-Streamable] handle_request returned for %s; response_started=%s",
+        key,
+        response_started,
     )
 
     logger.debug(f"HTTP Streamable request completed for {tenant_name}/{server_name}")
@@ -472,6 +679,17 @@ async def sse_message_post_handler(request):
         return JSONResponse({"error": "No active SSE connection"}, status_code=404)
 
     sse = sse_transports[key]
+    logger.debug("[SSE] POST message for %s", key)
+
+    # If SSE session just started, give a brief moment for initialization handshake
+    evt = sse_init_started.get(key)
+    if evt and not evt.is_set():
+        try:
+            await asyncio.wait_for(evt.wait(), timeout=0.5)
+        except Exception:
+            pass
+    # Even if set, allow a minimal delay to reduce race conditions
+    await asyncio.sleep(0.05)
 
     # Handle the POST message directly (it sends response via ASGI)
     # We need to create a custom send wrapper to track if response was sent
@@ -899,7 +1117,7 @@ app = Starlette(
         Route(
             "/mcp/{tenant_name}/{server_name}",
             http_streamable_post_handler,
-            methods=["POST"],
+            methods=["GET", "POST", "DELETE"],
         ),  # HTTP Streamable
         Route(
             "/mcp/{tenant_name}/{server_name}/sse", sse_handler, methods=["GET"]

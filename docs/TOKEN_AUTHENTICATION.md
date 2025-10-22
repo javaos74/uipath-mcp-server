@@ -1,12 +1,13 @@
-# 토큰 인증 가이드
+# Token Authentication Guide
 
-## 개요
+## Overview
 
-이 시스템은 JWT (JSON Web Token) 기반 인증을 사용합니다. 사용자는 로그인 후 받은 토큰을 사용하여 API에 접근합니다.
+This system uses JWT (JSON Web Token) based authentication. After logging in,
+users receive a token which they use to access the API.
 
-## 인증 플로우
+## Authentication Flow
 
-### 1. 사용자 등록
+### 1. User Registration
 
 ```bash
 curl -X POST http://localhost:8000/auth/register \
@@ -19,7 +20,7 @@ curl -X POST http://localhost:8000/auth/register \
   }'
 ```
 
-**응답:**
+**Response:**
 ```json
 {
   "id": 1,
@@ -34,7 +35,7 @@ curl -X POST http://localhost:8000/auth/register \
 }
 ```
 
-### 2. 로그인 및 토큰 발급
+### 2. Login and Issue Token
 
 ```bash
 curl -X POST http://localhost:8000/auth/login \
@@ -45,7 +46,7 @@ curl -X POST http://localhost:8000/auth/login \
   }'
 ```
 
-**응답:**
+**Response:**
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -64,21 +65,21 @@ curl -X POST http://localhost:8000/auth/login \
 }
 ```
 
-### 3. 토큰 사용
+### 3. Use the Token
 
-받은 `access_token`을 모든 API 요청의 `Authorization` 헤더에 포함시킵니다:
+Include the `access_token` in the `Authorization` header of all API requests:
 
 ```bash
 curl -X GET http://localhost:8000/api/servers \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-## 토큰 저장 방법
+## How to Store Tokens
 
-### 웹 브라우저
+### Web Browser
 
 ```javascript
-// 로그인 후 토큰 저장
+// Store token after login
 const response = await fetch('http://localhost:8000/auth/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -89,7 +90,7 @@ const data = await response.json();
 localStorage.setItem('access_token', data.access_token);
 localStorage.setItem('user', JSON.stringify(data.user));
 
-// API 호출 시 토큰 사용
+// Use token for API calls
 const serversResponse = await fetch('http://localhost:8000/api/servers', {
   headers: {
     'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -97,13 +98,13 @@ const serversResponse = await fetch('http://localhost:8000/api/servers', {
 });
 ```
 
-### Python 스크립트
+### Python Script
 
 ```python
 import requests
 import os
 
-# 로그인
+# Login
 response = requests.post('http://localhost:8000/auth/login', json={
     'username': 'john',
     'password': 'password123'
@@ -112,35 +113,35 @@ response = requests.post('http://localhost:8000/auth/login', json={
 data = response.json()
 token = data['access_token']
 
-# 환경변수에 저장 (선택)
+# Optionally store in environment variable
 os.environ['MCP_TOKEN'] = token
 
-# API 호출
+# API call
 headers = {'Authorization': f'Bearer {token}'}
 servers = requests.get('http://localhost:8000/api/servers', headers=headers)
 print(servers.json())
 ```
 
-### CLI 도구
+### CLI Tool
 
 ```bash
-# 토큰을 파일에 저장
+# Save token to a file
 curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"john","password":"password123"}' \
   | jq -r '.access_token' > ~/.mcp_token
 
-# 저장된 토큰 사용
+# Use saved token
 TOKEN=$(cat ~/.mcp_token)
 curl -X GET http://localhost:8000/api/servers \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## UiPath 설정
+## UiPath Configuration
 
-### UiPath PAT 저장
+### Save UiPath PAT
 
-사용자는 자신의 UiPath Personal Access Token을 저장할 수 있습니다:
+Users can save their UiPath Personal Access Token:
 
 ```bash
 curl -X PUT http://localhost:8000/auth/uipath-config \
@@ -153,7 +154,7 @@ curl -X PUT http://localhost:8000/auth/uipath-config \
   }'
 ```
 
-**응답:**
+**Response:**
 ```json
 {
   "id": 1,
@@ -168,34 +169,37 @@ curl -X PUT http://localhost:8000/auth/uipath-config \
 }
 ```
 
-**참고:** `uipath_access_token`은 보안상 응답에 포함되지 않습니다.
+**Note:** For security reasons, `uipath_access_token` is not included in the
+response.
 
-### UiPath PAT 사용
+### Use UiPath PAT
 
-사용자가 UiPath 설정을 저장하면, 해당 사용자가 생성한 MCP 서버의 Tool이 실행될 때 자동으로 사용자의 UiPath 자격 증명이 사용됩니다.
+Once a user saves their UiPath configuration, their UiPath credentials are
+automatically used when Tools run on MCP servers created by that user.
 
-## 토큰 만료
+## Token Expiration
 
-- JWT 토큰은 **24시간** 동안 유효합니다
-- 토큰이 만료되면 다시 로그인해야 합니다
-- 401 Unauthorized 응답을 받으면 토큰이 만료되었거나 유효하지 않은 것입니다
+- JWT tokens are valid for **24 hours**
+- When the token expires, you must log in again
+- If you receive a 401 Unauthorized response, the token has expired or is
+  invalid
 
-## 보안 권장사항
+## Security Recommendations
 
-1. **HTTPS 사용**: 프로덕션 환경에서는 반드시 HTTPS를 사용하세요
-2. **SECRET_KEY 변경**: `.env` 파일의 `SECRET_KEY`를 강력한 랜덤 값으로 변경하세요
+1. **Use HTTPS** in production environments
+2. **Change SECRET_KEY**: Set a strong random value for `SECRET_KEY` in `.env`
    ```bash
    openssl rand -hex 32
    ```
-3. **토큰 안전하게 저장**: 
-   - 브라우저: localStorage 대신 httpOnly 쿠키 사용 권장
-   - 서버: 환경변수 또는 보안 저장소 사용
-4. **토큰 노출 방지**: 
-   - 로그에 토큰 출력하지 않기
-   - Git에 토큰 커밋하지 않기
-   - 공개 채널에 토큰 공유하지 않기
+3. **Store tokens securely**:
+   - Browser: Prefer httpOnly cookies over localStorage
+   - Server: Use environment variables or a secure vault
+4. **Prevent token leakage**:
+   - Do not print tokens in logs
+   - Do not commit tokens to Git
+   - Do not share tokens in public channels
 
-## 로그인 화면 예시
+## Login Screen Example
 
 ### HTML + JavaScript
 
@@ -249,15 +253,15 @@ curl -X PUT http://localhost:8000/auth/uipath-config \
 </html>
 ```
 
-## API 엔드포인트
+## API Endpoints
 
-### 인증 관련
+### Authentication
 
-- `POST /auth/register` - 사용자 등록
-- `POST /auth/login` - 로그인 (토큰 발급)
-- `GET /auth/me` - 현재 사용자 정보 조회 (인증 필요)
-- `PUT /auth/uipath-config` - UiPath 설정 업데이트 (인증 필요)
+- `POST /auth/register` - Register a user
+- `POST /auth/login` - Login (issues token)
+- `GET /auth/me` - Get current user info (requires auth)
+- `PUT /auth/uipath-config` - Update UiPath config (requires auth)
 
-### 보호된 엔드포인트
+### Protected Endpoints
 
-모든 `/api/*` 및 `/mcp/*` 엔드포인트는 인증이 필요합니다.
+All `/api/*` and `/mcp/*` endpoints require authentication.

@@ -198,21 +198,23 @@ class Database:
             )
             row = await cursor.fetchone()
             if row:
+                # Convert sqlite Row to a plain dict for safe .get access
+                row_dict = dict(row)
                 return {
-                    "id": row["id"],
-                    "username": row["username"],
-                    "email": row["email"],
-                    "hashed_password": row["hashed_password"],
-                    "role": row["role"],
-                    "is_active": bool(row["is_active"]),
-                    "uipath_url": row["uipath_url"],
-                    "uipath_auth_type": row.get("uipath_auth_type", "pat"),
-                    "uipath_access_token": row["uipath_access_token"],
-                    "uipath_client_id": row.get("uipath_client_id"),
-                    "uipath_client_secret": row.get("uipath_client_secret"),
-                    "uipath_folder_path": row["uipath_folder_path"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
+                    "id": row_dict.get("id"),
+                    "username": row_dict.get("username"),
+                    "email": row_dict.get("email"),
+                    "hashed_password": row_dict.get("hashed_password"),
+                    "role": row_dict.get("role"),
+                    "is_active": bool(row_dict.get("is_active")),
+                    "uipath_url": row_dict.get("uipath_url"),
+                    "uipath_auth_type": row_dict.get("uipath_auth_type", "pat"),
+                    "uipath_access_token": row_dict.get("uipath_access_token"),
+                    "uipath_client_id": row_dict.get("uipath_client_id"),
+                    "uipath_client_secret": row_dict.get("uipath_client_secret"),
+                    "uipath_folder_path": row_dict.get("uipath_folder_path"),
+                    "created_at": row_dict.get("created_at"),
+                    "updated_at": row_dict.get("updated_at"),
                 }
             return None
 
@@ -230,21 +232,22 @@ class Database:
             cursor = await db.execute("SELECT * FROM users WHERE id = ?", (user_id,))
             row = await cursor.fetchone()
             if row:
+                row_dict = dict(row)
                 return {
-                    "id": row["id"],
-                    "username": row["username"],
-                    "email": row["email"],
-                    "hashed_password": row["hashed_password"],
-                    "role": row["role"],
-                    "is_active": bool(row["is_active"]),
-                    "uipath_url": row["uipath_url"],
-                    "uipath_auth_type": row.get("uipath_auth_type", "pat"),
-                    "uipath_access_token": row["uipath_access_token"],
-                    "uipath_client_id": row.get("uipath_client_id"),
-                    "uipath_client_secret": row.get("uipath_client_secret"),
-                    "uipath_folder_path": row["uipath_folder_path"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
+                    "id": row_dict.get("id"),
+                    "username": row_dict.get("username"),
+                    "email": row_dict.get("email"),
+                    "hashed_password": row_dict.get("hashed_password"),
+                    "role": row_dict.get("role"),
+                    "is_active": bool(row_dict.get("is_active")),
+                    "uipath_url": row_dict.get("uipath_url"),
+                    "uipath_auth_type": row_dict.get("uipath_auth_type", "pat"),
+                    "uipath_access_token": row_dict.get("uipath_access_token"),
+                    "uipath_client_id": row_dict.get("uipath_client_id"),
+                    "uipath_client_secret": row_dict.get("uipath_client_secret"),
+                    "uipath_folder_path": row_dict.get("uipath_folder_path"),
+                    "created_at": row_dict.get("created_at"),
+                    "updated_at": row_dict.get("updated_at"),
                 }
             return None
 

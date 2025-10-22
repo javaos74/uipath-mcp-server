@@ -183,8 +183,9 @@ export const toolsAPI = {
 
 // UiPath API
 export const uipathAPI = {
-  listFolders: async (): Promise<{ count: number; folders: any[] }> => {
-    const response = await api.get('/api/uipath/folders')
+  listFolders: async (q?: string): Promise<{ count: number; folders: any[]; matched?: any[]; matched_count?: number }> => {
+    const url = q ? `/api/uipath/folders?q=${encodeURIComponent(q)}` : '/api/uipath/folders'
+    const response = await api.get(url)
     return response.data
   },
 
