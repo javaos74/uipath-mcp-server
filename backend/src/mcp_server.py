@@ -10,6 +10,7 @@ from typing import Optional
 
 from .database import Database
 from .uipath_client import UiPathClient
+from .oauth import exchange_client_credentials_for_token
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -126,25 +127,74 @@ class DynamicMCPServer:
                     # Get user's UiPath credentials if user_id is set
                     uipath_url = None
                     uipath_token = None
+                    user_info = None
 
                     if self.user_id:
                         user = await self.db.get_user_by_id(self.user_id)
                         if user:
                             uipath_url = user.get("uipath_url")
                             uipath_token = user.get("uipath_access_token")
+                            user_info = user
 
                     # Execute process
                     logger.info(
                         f"Executing UiPath process: {tool['uipath_process_name']}"
                     )
-                    job = await self.uipath_client.execute_process(
-                        process_name=tool["uipath_process_name"],
-                        folder_path=tool["uipath_folder_path"] or "",
-                        input_arguments=arguments,
-                        uipath_url=uipath_url,
-                        uipath_access_token=uipath_token,
-                        folder_id=tool.get("uipath_folder_id"),
-                    )
+                    try:
+                        job = await self.uipath_client.execute_process(
+                            process_name=tool["uipath_process_name"],
+                            folder_path=tool["uipath_folder_path"] or "",
+                            input_arguments=arguments,
+                            uipath_url=uipath_url,
+                            uipath_access_token=uipath_token,
+                            folder_id=tool.get("uipath_folder_id"),
+                        )
+                    except Exception as e:
+                        msg = str(e)
+                        is_unauthorized = (
+                            "401" in msg or "403" in msg or "Unauthorized" in msg
+                        )
+                        can_refresh = (
+                            user_info is not None
+                            and user_info.get("uipath_auth_type") == "oauth"
+                            and user_info.get("uipath_client_id")
+                            and user_info.get("uipath_client_secret")
+                            and (uipath_url or user_info.get("uipath_url"))
+                        )
+                        if is_unauthorized and can_refresh:
+                            try:
+                                logger.info("Attempting OAuth token refresh after 401/403...")
+                                token_resp = await exchange_client_credentials_for_token(
+                                    uipath_url=(uipath_url or user_info.get("uipath_url")),
+                                    client_id=user_info.get("uipath_client_id"),
+                                    client_secret=user_info.get("uipath_client_secret"),
+                                )
+                                new_token = token_resp.get("access_token")
+                                if new_token:
+                                    # Persist and retry once
+                                    await self.db.update_user_uipath_config(
+                                        user_id=user_info["id"],
+                                        uipath_access_token=new_token,
+                                    )
+                                    uipath_token = new_token
+                                    logger.info("Retrying process execution with refreshed token...")
+                                    job = await self.uipath_client.execute_process(
+                                        process_name=tool["uipath_process_name"],
+                                        folder_path=tool["uipath_folder_path"] or "",
+                                        input_arguments=arguments,
+                                        uipath_url=uipath_url,
+                                        uipath_access_token=uipath_token,
+                                        folder_id=tool.get("uipath_folder_id"),
+                                    )
+                                else:
+                                    raise RuntimeError("Token refresh did not return access_token")
+                            except Exception as refresh_exc:
+                                # If refresh fails, re-raise original error path
+                                logger.error(f"Token refresh failed: {refresh_exc}", exc_info=True)
+                                raise e
+                        else:
+                            # Not an auth error or cannot refresh
+                            raise
 
                     job_id = job.get("id", "")
                     folder_id = job.get("folder_id", "") or tool.get("uipath_folder_id")
@@ -164,6 +214,8 @@ class DynamicMCPServer:
                         tool_info: dict,
                         uipath_url: str,
                         uipath_token: str,
+                        user_info: Optional[dict],
+                        db: Database,
                     ):
                         """Monitor job and send progress notifications.
 
@@ -207,17 +259,65 @@ class DynamicMCPServer:
                                 f"Job monitoring timeout: {TOOL_CALL_TIMEOUT}s ({TOOL_CALL_TIMEOUT // 60} minutes)"
                             )
 
+                            # Use a mutable token that can be refreshed in-loop
+                            current_token = uipath_token
+
                             while poll_count < max_polls:
                                 await asyncio.sleep(poll_interval)
                                 poll_count += 1
 
                                 # Get job status
-                                status = await self.uipath_client.get_job_status(
-                                    job_id=job_id,
-                                    uipath_url=uipath_url,
-                                    uipath_access_token=uipath_token,
-                                    folder_id=folder_id,
-                                )
+                                try:
+                                    status = await self.uipath_client.get_job_status(
+                                        job_id=job_id,
+                                        uipath_url=uipath_url,
+                                        uipath_access_token=current_token,
+                                        folder_id=folder_id,
+                                    )
+                                except Exception as status_exc:
+                                    msg = str(status_exc)
+                                    is_unauthorized = (
+                                        "401" in msg or "403" in msg or "Unauthorized" in msg
+                                    )
+                                    can_refresh = (
+                                        user_info is not None
+                                        and user_info.get("uipath_auth_type") == "oauth"
+                                        and user_info.get("uipath_client_id")
+                                        and user_info.get("uipath_client_secret")
+                                        and (uipath_url or user_info.get("uipath_url"))
+                                    )
+                                    if is_unauthorized and can_refresh:
+                                        try:
+                                            logger.info("Refreshing OAuth token during job monitoring (401/403)...")
+                                            token_resp = await exchange_client_credentials_for_token(
+                                                uipath_url=(uipath_url or user_info.get("uipath_url")),
+                                                client_id=user_info.get("uipath_client_id"),
+                                                client_secret=user_info.get("uipath_client_secret"),
+                                            )
+                                            new_token = token_resp.get("access_token")
+                                            if new_token:
+                                                await db.update_user_uipath_config(
+                                                    user_id=user_info["id"],
+                                                    uipath_access_token=new_token,
+                                                )
+                                                current_token = new_token
+                                                # Retry once immediately
+                                                status = await self.uipath_client.get_job_status(
+                                                    job_id=job_id,
+                                                    uipath_url=uipath_url,
+                                                    uipath_access_token=current_token,
+                                                    folder_id=folder_id,
+                                                )
+                                            else:
+                                                raise RuntimeError("Token refresh did not return access_token")
+                                        except Exception as refresh_exc:
+                                            logger.error(
+                                                f"Monitoring token refresh failed: {refresh_exc}",
+                                                exc_info=True,
+                                            )
+                                            raise status_exc
+                                    else:
+                                        raise
 
                                 state = status.get("state", "").lower()
                                 info = status.get("info", "N/A")
@@ -362,6 +462,8 @@ class DynamicMCPServer:
                             tool_info=tool,
                             uipath_url=uipath_url,
                             uipath_token=uipath_token,
+                            user_info=user_info,
+                            db=self.db,
                         )
                     )
                     logger.info(f"Waiting for monitoring task to complete...")

@@ -198,6 +198,13 @@ class UiPathClient:
             "Content-Type": "application/json",
         }
 
+        # If tenant logical name is embedded in URL like https://host/tenant/org,
+        # the Orchestrator requires the X-UIPATH-TenantName header.
+        # Attempt to derive it from the configured URL env var UIPATH_TENANT_NAME when present.
+        tenant_name = os.getenv("UIPATH_TENANT_NAME")
+        if tenant_name:
+            headers["X-UIPATH-TenantName"] = tenant_name
+
         # Add folder ID to header if provided
         if folder_id:
             headers["X-UIPATH-OrganizationUnitId"] = str(folder_id)
@@ -389,6 +396,7 @@ class UiPathClient:
         self,
         uipath_url: Optional[str] = None,
         uipath_access_token: Optional[str] = None,
+        search: Optional[str] = None,
     ) -> list[Dict[str, Any]]:
         """List available UiPath folders.
 
@@ -414,8 +422,21 @@ class UiPathClient:
         }
 
         try:
+            # Support optional server-side search via OData $filter
+            params = None
+            if search:
+                # Escape single quotes per OData rules by doubling them
+                escaped = search.replace("'", "''")
+                filter_expr = (
+                    f"contains(DisplayName,'{escaped}') or "
+                    f"contains(FullyQualifiedName,'{escaped}')"
+                )
+                params = {"$filter": filter_expr}
+
             async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(api_url, headers=headers, timeout=30.0)
+                response = await client.get(
+                    api_url, headers=headers, params=params, timeout=30.0
+                )
                 response.raise_for_status()
                 data = response.json()
 
@@ -470,6 +491,9 @@ class UiPathClient:
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             }
+            tenant_name = os.getenv("UIPATH_TENANT_NAME")
+            if tenant_name:
+                headers["X-UIPATH-TenantName"] = tenant_name
 
             async with httpx.AsyncClient(verify=False) as client:
                 # Get folder info
@@ -488,6 +512,9 @@ class UiPathClient:
                     "Content-Type": "application/json",
                     "X-UIPATH-OrganizationUnitId": str(folder_id),
                 }
+                tenant_name = os.getenv("UIPATH_TENANT_NAME")
+                if tenant_name:
+                    releases_headers["X-UIPATH-TenantName"] = tenant_name
 
                 # Get releases for this folder
                 releases_url = f"{base_url}/orchestrator_/odata/Releases"

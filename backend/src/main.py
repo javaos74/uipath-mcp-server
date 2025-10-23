@@ -27,20 +27,31 @@ def main():
     log_dir.mkdir(exist_ok=True)
     log_file = log_dir / "mcp_server.log"
 
-    # --- 1. 중앙 로깅 설정 (프로그램 시작 시 한 번만!) ---
+    # --- Logging configuration ---
     log_format = "%(asctime)s - %(name)-15s - %(levelname)-8s - %(message)s"
+    # File handler via basicConfig
     logging.basicConfig(
-        level=logging.DEBUG,  # 파일에 기록할 최소 레벨
+        level=logging.DEBUG,
         format=log_format,
         filename=log_file,
         filemode="w",
     )
+    # Console handler to surface DEBUG logs in terminal
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(logging.Formatter(log_format))
+    root_logger.addHandler(console_handler)
+    # Make our modules verbose
+    logging.getLogger("uipath-mcp-server").setLevel(logging.DEBUG)
+    logging.getLogger("mcp").setLevel(logging.DEBUG)
 
     host = os.getenv("API_HOST", "0.0.0.0")
     port = int(os.getenv("API_PORT", "8000"))
 
     uvicorn.run(
-        "src.http_server:app", host=host, port=port, log_level="info", reload=True
+        "src.http_server:app", host=host, port=port, log_level="debug", reload=True
     )
 
 

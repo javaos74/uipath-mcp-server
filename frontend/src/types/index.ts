@@ -11,6 +11,8 @@ export interface User {
   has_oauth_credentials: boolean
   created_at: string
   updated_at: string
+  // Optional informational message from certain endpoints (e.g., config update)
+  message?: string
 }
 
 export interface LoginRequest {
