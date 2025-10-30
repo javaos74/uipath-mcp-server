@@ -44,10 +44,11 @@ async def exchange_client_credentials_for_token(
 
     # Endpoints to try (Cloud first, then On-Prem style)
     token_endpoints = [
-        f"{base}/identity_/connect/token",
-        f"{base}/identity/connect/token",
+        f"{base}/identity/connect/token",  # for MSI on-premise 
+        f"{base}/identity_/connect/token", # for cloud & automation suite 
     ]
 
+    # Not used  just use scope which specified at external application 
     effective_scope = scope or os.getenv(
         "UIPATH_OAUTH_SCOPE",
         # Read scopes for listing folders, releases, and jobs
