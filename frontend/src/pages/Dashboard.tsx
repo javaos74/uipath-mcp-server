@@ -67,7 +67,7 @@ export default function Dashboard() {
                   <code>/mcp/{server.tenant_name}/{server.server_name}/sse</code>
                 </div>
                 <div className="endpoint-item">
-                  <span className="endpoint-label">HTTP:</span>
+                  <span className="endpoint-label">Streamable HTTP:</span>
                   <code>/mcp/{server.tenant_name}/{server.server_name}</code>
                 </div>
               </div>

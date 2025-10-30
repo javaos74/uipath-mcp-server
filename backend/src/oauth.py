@@ -62,7 +62,7 @@ async def exchange_client_credentials_for_token(
         "grant_type": "client_credentials",
         "client_id": client_id,
         "client_secret": client_secret,
-        "scope": effective_scope,
+        "scope": '', #effective_scope,
     }
 
     # Only include audience if set; some servers reject unknown params
@@ -74,7 +74,7 @@ async def exchange_client_credentials_for_token(
     for endpoint in token_endpoints:
         try:
             logger.info(
-                f"Requesting OAuth token via client_credentials at {endpoint}"
+                f"Requesting OAuth token via client_credentials at {endpoint} with scope: {effective_scope}"
             )
             async with httpx.AsyncClient(verify=False, timeout=20.0) as client:
                 response = await client.post(
@@ -85,20 +85,24 @@ async def exchange_client_credentials_for_token(
                     data=form,
                 )
 
+            logger.info(f"OAuth token request response: HTTP {response.status_code}")
+            
             if response.status_code == 200:
                 data = response.json()
                 if not data.get("access_token"):
                     raise RuntimeError(
                         "Token endpoint returned 200 but no access_token present"
                     )
+                logger.info("Successfully obtained OAuth access token")
                 return data
 
             # Non-200: attempt to extract error for logs, then try next endpoint
             try:
                 err = response.json()
+                error_detail = err.get("error_description", err.get("error", response.text))
             except Exception:
-                err = {"error": response.text}
-            last_error = f"HTTP {response.status_code}: {err}"
+                error_detail = response.text
+            last_error = f"HTTP {response.status_code}: {error_detail}"
             logger.warning(
                 f"Token request to {endpoint} failed: {last_error}; trying fallback"
             )

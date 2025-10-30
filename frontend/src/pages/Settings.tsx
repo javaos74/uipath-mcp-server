@@ -28,17 +28,25 @@ export default function Settings() {
       // Sync local UI state with latest server values
       setAuthType((data?.uipath_auth_type as AuthType) || 'pat')
       setFormData((prev) => ({ ...prev, uipath_url: data?.uipath_url || '' }))
-      // If backend included a message (e.g., OAuth token not generated), show it as error
+      // Handle different success/error scenarios
       if (data?.message) {
-        setError(data.message)
+        // Backend provided a specific message (usually an error or warning)
+        if (data.message.includes('failed') || data.message.includes('error')) {
+          setError(data.message)
+          setSuccess('')
+        } else {
+          setSuccess(data.message)
+          setError('')
+        }
+      } else if (authType === 'oauth' && !data?.has_uipath_token) {
+        setError('OAuth credentials saved, but token generation failed. Please check your credentials and UiPath URL.')
         setSuccess('')
       } else if (data?.has_uipath_token || authType === 'pat') {
         setSuccess('UiPath configuration updated successfully')
         setError('')
       } else {
-        // OAuth selected but no token present and no message: show a caution
-        setError('Configuration saved, but no UiPath token was generated.')
-        setSuccess('')
+        setSuccess('Configuration saved')
+        setError('')
       }
       // Clear sensitive fields after successful update
       setFormData({ ...formData, uipath_access_token: '' })

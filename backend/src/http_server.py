@@ -265,6 +265,7 @@ async def update_uipath_config(request):
         )
 
         # If switching to OAuth and we have credentials, exchange for access token
+        oauth_error_message = None
         try:
             if (
                 (config.uipath_auth_type == "oauth")
@@ -281,25 +282,38 @@ async def update_uipath_config(request):
                     config.uipath_client_secret or current.get("uipath_client_secret")
                 )
 
+                logger.info(f"OAuth token exchange attempt - URL: {uipath_url}, Client ID: {client_id}, Has Secret: {bool(client_secret)}")
+
                 if uipath_url and client_id and client_secret:
-                    token_resp = await exchange_client_credentials_for_token(
-                        uipath_url=uipath_url,
-                        client_id=client_id,
-                        client_secret=client_secret,
-                    )
-                    access_token = token_resp.get("access_token")
-                    if access_token:
-                        await db.update_user_uipath_config(
-                            user_id=user.id,
-                            uipath_access_token=access_token,
+                    try:
+                        token_resp = await exchange_client_credentials_for_token(
+                            uipath_url=uipath_url,
+                            client_id=client_id,
+                            client_secret=client_secret,
                         )
-                        logger.info("Stored OAuth access token for user")
+                        access_token = token_resp.get("access_token")
+                        if access_token:
+                            await db.update_user_uipath_config(
+                                user_id=user.id,
+                                uipath_access_token=access_token,
+                            )
+                            logger.info("Successfully stored OAuth access token for user")
+                        else:
+                            oauth_error_message = "Token response did not contain access_token"
+                            logger.error(f"OAuth token exchange failed: {oauth_error_message}")
+                    except Exception as token_error:
+                        oauth_error_message = str(token_error)
+                        logger.error(f"OAuth token exchange failed: {oauth_error_message}")
                 else:
-                    logger.info(
-                        "OAuth selected but missing url/client_id/client_secret; skipping token exchange"
-                    )
+                    missing_fields = []
+                    if not uipath_url: missing_fields.append("URL")
+                    if not client_id: missing_fields.append("Client ID")
+                    if not client_secret: missing_fields.append("Client Secret")
+                    oauth_error_message = f"Missing required fields: {', '.join(missing_fields)}"
+                    logger.info(f"OAuth selected but missing fields; skipping token exchange: {oauth_error_message}")
         except Exception as e:
             # Don't fail the save entirely; report error in response below
+            oauth_error_message = str(e)
             logger.warning(f"OAuth token exchange failed: {e}")
 
         # Get updated user
@@ -316,7 +330,7 @@ async def update_uipath_config(request):
         user_response = UserResponse(**user_data)
 
         resp = user_response.model_dump()
-        # If the token is missing after an OAuth attempt, include a hint
+        # If the token is missing after an OAuth attempt, include a detailed hint
         if (
             (config.uipath_auth_type == "oauth")
             and not updated_user.get("uipath_access_token")
@@ -329,10 +343,13 @@ async def update_uipath_config(request):
                 bool(updated_user.get("uipath_client_id")),
                 bool(updated_user.get("uipath_client_secret")),
             )
-            resp["message"] = (
-                "OAuth credentials saved. Token exchange did not complete; "
-                "ensure URL and client credentials are correct."
-            )
+            if oauth_error_message:
+                resp["message"] = f"OAuth credentials saved but token exchange failed: {oauth_error_message}"
+            else:
+                resp["message"] = (
+                    "OAuth credentials saved. Token exchange did not complete; "
+                    "ensure URL and client credentials are correct."
+                )
 
         return JSONResponse(resp)
 
