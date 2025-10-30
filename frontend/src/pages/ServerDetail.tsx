@@ -44,9 +44,16 @@ export default function ServerDetail() {
         <div>
           <Link to="/" className="back-link">← Back to Dashboard</Link>
           <h1>{serverName}</h1>
-          <p className="server-path">
-            <code>/mcp/{tenantName}/{serverName}</code>
-          </p>
+          <div className="server-endpoints">
+            <div className="endpoint-group">
+              <span className="endpoint-label">SSE:</span>
+              <code>/mcp/{tenantName}/{serverName}/sse</code>
+            </div>
+            <div className="endpoint-group">
+              <span className="endpoint-label">Streamable HTTP:</span>
+              <code>/mcp/{tenantName}/{serverName}</code>
+            </div>
+          </div>
         </div>
         <button
           className="btn btn-primary"
@@ -840,14 +847,21 @@ function TokenManager({
           <div className="token-usage">
             <h4>How to use:</h4>
             <div className="usage-example">
-              <p>Method 1: Authorization Header (Recommended)</p>
+              <p>SSE Connection (Server-Sent Events)</p>
+              <code>
+                curl -N -H "Authorization: Bearer {token.substring(0, 20)}..." <br />
+                http://localhost:8000/mcp/{tenantName}/{serverName}/sse
+              </code>
+            </div>
+            <div className="usage-example">
+              <p>Streamable HTTP Connection</p>
               <code>
                 curl -N -H "Authorization: Bearer {token.substring(0, 20)}..." <br />
                 http://localhost:8000/mcp/{tenantName}/{serverName}
               </code>
             </div>
             <div className="usage-example">
-              <p>Method 2: Query Parameter</p>
+              <p>With Query Parameter (Alternative)</p>
               <code>
                 curl -N http://localhost:8000/mcp/{tenantName}/{serverName}?token=
                 {token.substring(0, 20)}...

@@ -56,13 +56,20 @@ export default function Dashboard() {
                 <h3>{server.server_name}</h3>
                 <span className="server-tenant">{server.tenant_name}</span>
               </div>
-              
+
               <p className="server-description">
                 {server.description || 'No description'}
               </p>
 
               <div className="server-endpoint">
-                <code>/mcp/{server.tenant_name}/{server.server_name}</code>
+                <div className="endpoint-item">
+                  <span className="endpoint-label">SSE:</span>
+                  <code>/mcp/{server.tenant_name}/{server.server_name}/sse</code>
+                </div>
+                <div className="endpoint-item">
+                  <span className="endpoint-label">HTTP:</span>
+                  <code>/mcp/{server.tenant_name}/{server.server_name}</code>
+                </div>
               </div>
 
               <div className="server-actions">
@@ -128,7 +135,7 @@ function CreateServerModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Create MCP Server</h2>
-        
+
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
             <label>Tenant Name</label>
