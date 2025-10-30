@@ -33,7 +33,7 @@ async def exchange_client_credentials_for_token(
         uipath_url: Full UiPath base URL configured by the user
         client_id: OAuth client id
         client_secret: OAuth client secret
-        scope: Optional space-delimited scopes. Defaults to common OR scopes
+        scope: Optional space-delimited scopes. set empty to use scope when it generated 
         audience: Optional audience parameter (e.g. orchestrator)
 
     Returns:
