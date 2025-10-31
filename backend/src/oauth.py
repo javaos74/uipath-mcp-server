@@ -23,8 +23,8 @@ async def exchange_client_credentials_for_token(
     """Exchange OAuth client credentials for an access token.
 
     This attempts UiPath Identity endpoints commonly used in Cloud and On-Prem:
-    - <base>/identity_/connect/token (Cloud)
-    - <base>/identity/connect/token (On-Prem)
+    - <base>/identity_/connect/token (Cloud & Automation Suite)
+    - <base>/<org_name>/identity/connect/token (On-Prem MSI)
 
     Args:
         uipath_url: Full UiPath base URL configured by the user
@@ -52,7 +52,7 @@ async def exchange_client_credentials_for_token(
     effective_scope = scope or os.getenv(
         "UIPATH_OAUTH_SCOPE",
         # Read scopes for listing folders, releases, and jobs
-        "OR.Folders.Read OR.Releases.Read OR.Jobs.Read",
+        "OR.Jobs OR.Folders OR.Execution",
     )
     effective_audience = audience or os.getenv(
         "UIPATH_OAUTH_AUDIENCE",
@@ -63,7 +63,7 @@ async def exchange_client_credentials_for_token(
         "grant_type": "client_credentials",
         "client_id": client_id,
         "client_secret": client_secret,
-        "scope": '', #effective_scope,
+        "scope": effective_scope,
     }
 
     # Only include audience if set; some servers reject unknown params

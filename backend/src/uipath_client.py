@@ -6,6 +6,7 @@ import json
 import logging
 import warnings
 from typing import Dict, Any, Optional
+from urllib.parse import urlparse
 from uipath import UiPath
 
 # Suppress SSL warnings for self-signed certificates
@@ -190,7 +191,13 @@ class UiPathClient:
             raise Exception(f"Release not found for process: {process_name}")
 
         # Construct API URL for startJobs
-        api_url = f"{base_url}/orchestrator_/odata/Jobs/UiPath.Server.Configuration.OData.StartJobs"
+        parsed = urlparse(base_url)
+        if len(parsed.path) <= 1:
+            api_url = (
+                f"{base_url}/odata/Jobs/UiPath.Server.Configuration.OData.StartJobs"
+            )
+        else:
+            api_url = f"{base_url}/orchestrator_/odata/Jobs/UiPath.Server.Configuration.OData.StartJobs"
         logger.info(f"API URL: {api_url}")
 
         headers = {
@@ -286,7 +293,11 @@ class UiPathClient:
             headers["X-UIPATH-OrganizationUnitId"] = str(folder_id)
 
         # Query releases by process name
-        api_url = f"{base_url}/orchestrator_/odata/Releases?$filter=ProcessKey eq '{process_name}'"
+        parsed = urlparse(base_url)
+        if len(parsed.path) <= 1:
+            api_url = f"{base_url}/odata/Releases?$filter=ProcessKey eq '{process_name}'"
+        else:
+            api_url = f"{base_url}/orchestrator_/odata/Releases?$filter=ProcessKey eq '{process_name}'"
         logger.info(f"Querying releases: {api_url}")
 
         try:
@@ -337,7 +348,11 @@ class UiPathClient:
             raise Exception("UiPath URL and token are required")
 
         # Construct API URL - using Jobs(id) endpoint
-        api_url = f"{base_url}/orchestrator_/odata/Jobs({job_id})"
+        parsed = urlparse(base_url)
+        if len(parsed.path) <= 1:
+            api_url = f"{base_url}/odata/Jobs({job_id})"   
+        else:
+            api_url = f"{base_url}/orchestrator_/odata/Jobs({job_id})"
         logger.info(f"API URL: {api_url}")
 
         headers = {
@@ -413,8 +428,13 @@ class UiPathClient:
         if not base_url or not token:
             raise Exception("UiPath URL and token are required")
 
+        # MSI or automation suite check
+        parsed = urlparse(base_url)
         # Construct API URL for folders
-        api_url = f"{base_url}/orchestrator_/odata/Folders"
+        if len(parsed.path) <= 1:
+            api_url = f"{base_url}/odata/Folders"
+        else:
+            api_url = f"{base_url}/orchestrator_/odata/Folders"
 
         headers = {
             "Authorization": f"Bearer {token}",
@@ -484,8 +504,14 @@ class UiPathClient:
             raise Exception("Folder ID is required")
 
         try:
+            # MSI or automation suite check
+            parsed = urlparse(base_url)
             # First, get folder details to get the folder key
-            folder_api_url = f"{base_url}/orchestrator_/odata/Folders({folder_id})"
+            # Construct API URL for folders
+            if len(parsed.path) <= 1:
+                folder_api_url = f"{base_url}/odata/Folders({folder_id})"
+            else:
+                folder_api_url = f"{base_url}/orchestrator_/odata/Folders({folder_id})"
 
             headers = {
                 "Authorization": f"Bearer {token}",
@@ -517,7 +543,12 @@ class UiPathClient:
                     releases_headers["X-UIPATH-TenantName"] = tenant_name
 
                 # Get releases for this folder
-                releases_url = f"{base_url}/orchestrator_/odata/Releases"
+                # MSI or automation suite check
+                parsed = urlparse(base_url)
+                if len(parsed.path) <= 1:
+                    releases_url = f"{base_url}/odata/Releases"
+                else:
+                    releases_url = f"{base_url}/orchestrator_/odata/Releases"
                 releases_response = await client.get(
                     releases_url, headers=releases_headers, timeout=30.0
                 )
