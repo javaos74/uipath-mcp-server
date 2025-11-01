@@ -389,12 +389,12 @@ function UiPathProcessPicker({
                         setSelectedProcess(null)
                       }}
                     >
-                      ← Change Folder
+                      ← {t('processPicker.changeFolder')}
                     </button>
-                    <h3>Step 2: Select a Process from {selectedFolder.name}</h3>
+                    <h3>{t('processPicker.step2', { folder: selectedFolder.name })}</h3>
                   </div>
                   {!processesData?.processes || processesData.processes.length === 0 ? (
-                    <p className="empty-message">No processes found in this folder.</p>
+                    <p className="empty-message">{t('processPicker.noProcesses')}</p>
                   ) : (
                     <div className="processes">
                       {processesData.processes.map((process: UiPathProcess) => (
@@ -418,23 +418,23 @@ function UiPathProcessPicker({
 
             {selectedProcess && (
               <div className="process-details">
-                <h3>Tool Configuration</h3>
+                <h3>{t('processPicker.toolConfig')}</h3>
 
                 <div className="form-group">
-                  <label>Tool Name *</label>
+                  <label>{t('processPicker.toolName.label')} *</label>
                   <input
                     type="text"
                     className="input"
                     value={toolName}
                     onChange={(e) => setToolName(e.target.value)}
-                    placeholder="tool_name"
+                    placeholder={t('processPicker.toolName.placeholder')}
                     required
                   />
-                  <small>Use lowercase letters, numbers, and underscores only</small>
+                  <small>{t('processPicker.toolName.help')}</small>
                 </div>
 
                 <div className="form-group">
-                  <label>UiPath Process</label>
+                  <label>{t('processPicker.processName')}</label>
                   <input
                     type="text"
                     className="input"
@@ -444,31 +444,31 @@ function UiPathProcessPicker({
                 </div>
 
                 <div className="form-group">
-                  <label>Process Key</label>
+                  <label>{t('processPicker.processKey.label')}</label>
                   <input
                     type="text"
                     className="input"
                     value={selectedProcess.key || selectedProcess.name || 'N/A'}
                     disabled
                   />
-                  <small>Unique identifier for the process</small>
+                  <small>{t('processPicker.processKey.help')}</small>
                 </div>
 
                 <div className="form-group">
-                  <label>Tool Description *</label>
+                  <label>{t('processPicker.description.label')} *</label>
                   <textarea
                     className="input"
                     value={toolDescription}
                     onChange={(e) => setToolDescription(e.target.value)}
                     rows={2}
-                    placeholder="Describe what this tool does..."
+                    placeholder={t('processPicker.description.placeholder')}
                     required
                   />
                 </div>
 
                 {parameters.length > 0 && (
                   <div className="form-group">
-                    <label>Input Parameters ({parameters.length})</label>
+                    <label>{t('processPicker.parameters', { count: parameters.length })}</label>
                     <div className="params-editor">
                       {parameters.map((param, index) => (
                         <div key={param.name} className="param-editor-item">
@@ -484,7 +484,7 @@ function UiPathProcessPicker({
                                     handleParameterChange(index, 'required', e.target.checked)
                                   }
                                 />
-                                Required
+                                {t('processPicker.paramRequired')}
                               </label>
                             </div>
                           </div>
@@ -496,7 +496,7 @@ function UiPathProcessPicker({
                               onChange={(e) =>
                                 handleParameterChange(index, 'description', e.target.value)
                               }
-                              placeholder="Parameter description..."
+                              placeholder={t('processPicker.paramDescription')}
                             />
                           </div>
                         </div>
@@ -513,7 +513,7 @@ function UiPathProcessPicker({
                     className="btn btn-secondary"
                     onClick={onClose}
                   >
-                    Cancel
+                    {t('common:button.cancel', { ns: 'common' })}
                   </button>
                   <button
                     type="button"
@@ -521,7 +521,7 @@ function UiPathProcessPicker({
                     onClick={handleCreateTool}
                     disabled={createMutation.isPending || !toolName || !toolDescription}
                   >
-                    {createMutation.isPending ? 'Creating...' : 'Create Tool'}
+                    {createMutation.isPending ? t('processPicker.button.creating') : t('processPicker.button.create')}
                   </button>
                 </div>
               </div>
@@ -547,6 +547,7 @@ function ToolEditor({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation('server')
   const [toolDescription, setToolDescription] = useState(tool.description || '')
   const [parameters, setParameters] = useState<Array<{
     name: string
@@ -574,7 +575,7 @@ function ToolEditor({
       toolsAPI.update(tenantName, serverName, tool.name, data),
     onSuccess,
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to update tool')
+      setError(err.response?.data?.error || t('toolEditor.error.descriptionRequired'))
     },
   })
 
@@ -586,7 +587,7 @@ function ToolEditor({
 
   const handleUpdate = () => {
     if (!toolDescription) {
-      setError('Please enter a tool description')
+      setError(t('toolEditor.error.descriptionRequired'))
       return
     }
 
@@ -619,24 +620,24 @@ function ToolEditor({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-        <h2>Edit Tool: {tool.name}</h2>
+        <h2>{t('toolEditor.title', { name: tool.name })}</h2>
 
         <div className="tool-editor">
           <div className="form-group">
-            <label>Tool Name</label>
+            <label>{t('toolEditor.toolName.label')}</label>
             <input
               type="text"
               className="input"
               value={tool.name}
               disabled
             />
-            <small>Tool name cannot be changed</small>
+            <small>{t('toolEditor.toolName.help')}</small>
           </div>
 
           {tool.uipath_process_name && (
             <>
               <div className="form-group">
-                <label>UiPath Process</label>
+                <label>{t('toolEditor.process')}</label>
                 <input
                   type="text"
                   className="input"
@@ -647,7 +648,7 @@ function ToolEditor({
 
               {tool.uipath_process_key && (
                 <div className="form-group">
-                  <label>Process Key</label>
+                  <label>{t('toolEditor.processKey')}</label>
                   <input
                     type="text"
                     className="input"
@@ -659,7 +660,7 @@ function ToolEditor({
 
               {tool.uipath_folder_path && (
                 <div className="form-group">
-                  <label>UiPath Folder</label>
+                  <label>{t('toolEditor.folder')}</label>
                   <input
                     type="text"
                     className="input"
@@ -672,20 +673,20 @@ function ToolEditor({
           )}
 
           <div className="form-group">
-            <label>Tool Description *</label>
+            <label>{t('toolEditor.description.label')} *</label>
             <textarea
               className="input"
               value={toolDescription}
               onChange={(e) => setToolDescription(e.target.value)}
               rows={3}
-              placeholder="Describe what this tool does..."
+              placeholder={t('toolEditor.description.placeholder')}
               required
             />
           </div>
 
           {parameters.length > 0 && (
             <div className="form-group">
-              <label>Input Parameters ({parameters.length})</label>
+              <label>{t('toolEditor.parameters', { count: parameters.length })}</label>
               <div className="params-editor">
                 {parameters.map((param: any, index: number) => (
                   <div key={param.name} className="param-editor-item">
@@ -701,7 +702,7 @@ function ToolEditor({
                               handleParameterChange(index, 'required', e.target.checked)
                             }
                           />
-                          Required
+                          {t('processPicker.paramRequired')}
                         </label>
                       </div>
                     </div>
@@ -713,7 +714,7 @@ function ToolEditor({
                         onChange={(e) =>
                           handleParameterChange(index, 'description', e.target.value)
                         }
-                        placeholder="Parameter description..."
+                        placeholder={t('processPicker.paramDescription')}
                       />
                     </div>
                   </div>
@@ -730,7 +731,7 @@ function ToolEditor({
               className="btn btn-secondary"
               onClick={onClose}
             >
-              Cancel
+              {t('common:button.cancel', { ns: 'common' })}
             </button>
             <button
               type="button"
@@ -738,7 +739,7 @@ function ToolEditor({
               onClick={handleUpdate}
               disabled={updateMutation.isPending || !toolDescription}
             >
-              {updateMutation.isPending ? 'Updating...' : 'Update Tool'}
+              {updateMutation.isPending ? t('toolEditor.button.updating') : t('toolEditor.button.update')}
             </button>
           </div>
         </div>
