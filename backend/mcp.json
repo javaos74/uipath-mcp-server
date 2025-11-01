@@ -1,9 +1,0 @@
-{
-  "servers": {
-    "uipath-dynamic-server": {
-      "transport": "stdio",
-      "command": "python",
-      "args": ["src/server.py"]
-    }
-  }
-}
