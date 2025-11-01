@@ -5,6 +5,10 @@
     "error": "错误",
     "success": "成功"
   },
+  "nav": {
+    "dashboard": "仪表板",
+    "settings": "设置"
+  },
   "button": {
     "save": "保存",
     "cancel": "取消",

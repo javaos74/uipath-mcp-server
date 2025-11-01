@@ -5,6 +5,10 @@
     "error": "エラー",
     "success": "成功"
   },
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "settings": "設定"
+  },
   "button": {
     "save": "保存",
     "cancel": "キャンセル",

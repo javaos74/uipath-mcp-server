@@ -5,6 +5,10 @@
     "error": "오류",
     "success": "성공"
   },
+  "nav": {
+    "dashboard": "대시보드",
+    "settings": "설정"
+  },
   "button": {
     "save": "저장",
     "cancel": "취소",

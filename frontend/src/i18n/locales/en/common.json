@@ -5,6 +5,10 @@
     "error": "Error",
     "success": "Success"
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Settings"
+  },
   "button": {
     "save": "Save",
     "cancel": "Cancel",

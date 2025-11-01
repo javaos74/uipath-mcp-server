@@ -23,8 +23,8 @@ export default function Layout() {
           </Link>
           
           <nav className="nav">
-            <Link to="/" className="nav-link">Dashboard</Link>
-            <Link to="/settings" className="nav-link">Settings</Link>
+            <Link to="/" className="nav-link">{t('common:nav.dashboard', { ns: 'common' })}</Link>
+            <Link to="/settings" className="nav-link">{t('common:nav.settings', { ns: 'common' })}</Link>
           </nav>
 
           <div className="user-menu">
