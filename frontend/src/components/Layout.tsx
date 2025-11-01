@@ -1,5 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from './LanguageSwitcher'
 import './Layout.css'
 
 export default function Layout() {
@@ -25,6 +27,7 @@ export default function Layout() {
           </nav>
 
           <div className="user-menu">
+            <LanguageSwitcher />
             <span className="user-name">{user?.username}</span>
             <span className="user-role">{user?.role}</span>
             <button onClick={handleLogout} className="btn btn-secondary btn-sm">

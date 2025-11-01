@@ -1,0 +1,43 @@
+{
+  "app": {
+    "title": "UiPath MCP Server",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "button": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "search": "Search",
+    "clear": "Clear",
+    "add": "Add",
+    "update": "Update",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "revoke": "Revoke",
+    "copy": "Copy",
+    "show": "Show",
+    "hide": "Hide"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "completed": "Completed",
+    "failed": "Failed"
+  },
+  "message": {
+    "confirmDelete": "Are you sure you want to delete this?",
+    "saved": "Saved successfully",
+    "deleted": "Deleted successfully",
+    "updated": "Updated successfully",
+    "created": "Created successfully",
+    "copied": "Copied to clipboard"
+  }
+}

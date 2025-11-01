@@ -1,0 +1,58 @@
+{
+  "title": "설정",
+  "userInfo": {
+    "title": "사용자 정보",
+    "username": "사용자명",
+    "email": "이메일",
+    "role": "역할"
+  },
+  "uipath": {
+    "title": "UiPath 설정",
+    "description": "UiPath 인증 정보를 설정합니다. RPA 프로세스 실행 시 사용됩니다.",
+    "url": {
+      "label": "UiPath Cloud/Automation Suite URL",
+      "placeholder": "https://cloud.uipath.com/org_name/tenant_name",
+      "help": {
+        "title": "URL 형식:",
+        "msi": "MSI (온프레미스): https://<도메인_이름>",
+        "suite": "Automation Suite: https://<도메인_이름>/<조직_이름>/<테넌트_이름>"
+      }
+    },
+    "authType": {
+      "label": "인증 방식",
+      "pat": "개인 액세스 토큰 (PAT)",
+      "oauth": "OAuth 2.0 (클라이언트 자격증명)"
+    },
+    "pat": {
+      "label": "UiPath 개인 액세스 토큰 (PAT)",
+      "placeholder": "PAT가 없습니다 - UiPath PAT를 입력하세요",
+      "placeholderExists": "••••••••••••••••",
+      "help": "PAT는 안전하게 저장됩니다.",
+      "helpExists": "현재: ••••••••••••••••  (안전하게 저장됨)"
+    },
+    "oauth": {
+      "clientId": {
+        "label": "OAuth 클라이언트 ID",
+        "placeholder": "OAuth 클라이언트 ID를 입력하세요",
+        "help": "UiPath OAuth 애플리케이션의 클라이언트 ID",
+        "helpExists": "현재: {{clientId}}"
+      },
+      "clientSecret": {
+        "label": "OAuth 클라이언트 시크릿",
+        "placeholder": "OAuth 클라이언트 시크릿을 입력하세요",
+        "placeholderExists": "••••••••••••••••",
+        "help": "클라이언트 시크릿은 안전하게 저장되며 액세스 토큰 획득에 사용됩니다",
+        "helpExists": "현재: ••••••••••••••••  (안전하게 저장됨)"
+      }
+    },
+    "button": {
+      "save": "설정 저장",
+      "saving": "저장 중..."
+    },
+    "message": {
+      "success": "UiPath 설정이 성공적으로 업데이트되었습니다",
+      "oauthFailed": "OAuth 자격증명은 저장되었으나 토큰 생성에 실패했습니다. 자격증명과 UiPath URL을 확인하세요.",
+      "saved": "설정이 저장되었습니다"
+    }
+  }
+}

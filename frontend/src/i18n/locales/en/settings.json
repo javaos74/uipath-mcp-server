@@ -1,0 +1,58 @@
+{
+  "title": "Settings",
+  "userInfo": {
+    "title": "User Information",
+    "username": "Username",
+    "email": "Email",
+    "role": "Role"
+  },
+  "uipath": {
+    "title": "UiPath Configuration",
+    "description": "Configure your UiPath credentials. These will be used when executing RPA processes.",
+    "url": {
+      "label": "UiPath Cloud/Automation Suite URL",
+      "placeholder": "https://cloud.uipath.com/org_name/tenant_name",
+      "help": {
+        "title": "URL Format:",
+        "msi": "MSI (On-Premise): https://<domain_name>",
+        "suite": "Automation Suite: https://<domain_name>/<org_name>/<tenant_name>"
+      }
+    },
+    "authType": {
+      "label": "Authentication Type",
+      "pat": "Personal Access Token (PAT)",
+      "oauth": "OAuth 2.0 (Client Credentials)"
+    },
+    "pat": {
+      "label": "UiPath Personal Access Token (PAT)",
+      "placeholder": "No PAT found - Enter your UiPath PAT",
+      "placeholderExists": "••••••••••••••••",
+      "help": "Your PAT will be stored securely.",
+      "helpExists": "Current: ••••••••••••••••  (stored securely)"
+    },
+    "oauth": {
+      "clientId": {
+        "label": "OAuth Client ID",
+        "placeholder": "Enter your OAuth Client ID",
+        "help": "The Client ID from your UiPath OAuth application",
+        "helpExists": "Current: {{clientId}}"
+      },
+      "clientSecret": {
+        "label": "OAuth Client Secret",
+        "placeholder": "Enter your OAuth Client Secret",
+        "placeholderExists": "••••••••••••••••",
+        "help": "The Client Secret will be stored securely and used to obtain access tokens",
+        "helpExists": "Current: ••••••••••••••••  (stored securely)"
+      }
+    },
+    "button": {
+      "save": "Save Configuration",
+      "saving": "Saving..."
+    },
+    "message": {
+      "success": "UiPath configuration updated successfully",
+      "oauthFailed": "OAuth credentials saved, but token generation failed. Please check your credentials and UiPath URL.",
+      "saved": "Configuration saved"
+    }
+  }
+}
