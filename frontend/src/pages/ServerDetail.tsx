@@ -755,6 +755,7 @@ function TokenManager({
   tenantName: string
   serverName: string
 }) {
+  const { t } = useTranslation('server')
   const [token, setToken] = useState<string | null>(null)
   const [showToken, setShowToken] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -799,11 +800,7 @@ function TokenManager({
 
   const handleGenerate = () => {
     if (token) {
-      if (
-        confirm(
-          'Generating a new token will invalidate the existing token. Continue?'
-        )
-      ) {
+      if (confirm(t('token.confirmRegenerate'))) {
         generateMutation.mutate()
       }
     } else {
@@ -812,7 +809,7 @@ function TokenManager({
   }
 
   const handleRevoke = () => {
-    if (confirm('Are you sure you want to revoke this token? This cannot be undone.')) {
+    if (confirm(t('token.confirmRevoke'))) {
       revokeMutation.mutate()
     }
   }
@@ -824,9 +821,9 @@ function TokenManager({
   return (
     <div className="token-manager">
       <div className="token-header">
-        <h3>API Token</h3>
+        <h3>{t('token.title')}</h3>
         <p className="token-description">
-          Use this token to connect external MCP clients to this server
+          {t('token.description')}
         </p>
       </div>
 
@@ -843,14 +840,14 @@ function TokenManager({
               className="btn btn-secondary btn-sm"
               onClick={() => setShowToken(!showToken)}
             >
-              {showToken ? '👁️ Hide' : '👁️ Show'}
+              {showToken ? `👁️ ${t('token.hide')}` : `👁️ ${t('token.show')}`}
             </button>
             <button
               className="btn btn-primary btn-sm"
               onClick={handleCopy}
               disabled={!showToken}
             >
-              {copied ? '✓ Copied!' : '📋 Copy'}
+              {copied ? `✓ ${t('token.copied')}` : `📋 ${t('token.copy')}`}
             </button>
           </div>
 
@@ -860,35 +857,35 @@ function TokenManager({
               onClick={handleGenerate}
               disabled={generateMutation.isPending}
             >
-              {generateMutation.isPending ? 'Generating...' : '🔄 Regenerate'}
+              {generateMutation.isPending ? t('token.generating') : `🔄 ${t('token.regenerate')}`}
             </button>
             <button
               className="btn btn-danger btn-sm"
               onClick={handleRevoke}
               disabled={revokeMutation.isPending}
             >
-              {revokeMutation.isPending ? 'Revoking...' : '🗑️ Revoke'}
+              {revokeMutation.isPending ? t('token.revoking') : `🗑️ ${t('token.revoke')}`}
             </button>
           </div>
 
           <div className="token-usage">
-            <h4>How to use:</h4>
+            <h4>{t('token.usage.title')}</h4>
             <div className="usage-example">
-              <p>SSE Connection (Server-Sent Events)</p>
+              <p>{t('token.usage.sse')}</p>
               <code>
                 curl -N -H "Authorization: Bearer {token.substring(0, 20)}..." <br />
                 http://localhost:8000/mcp/{tenantName}/{serverName}/sse
               </code>
             </div>
             <div className="usage-example">
-              <p>Streamable HTTP Connection</p>
+              <p>{t('token.usage.http')}</p>
               <code>
                 curl -N -H "Authorization: Bearer {token.substring(0, 20)}..." <br />
                 http://localhost:8000/mcp/{tenantName}/{serverName}
               </code>
             </div>
             <div className="usage-example">
-              <p>With Query Parameter (Alternative)</p>
+              <p>{t('token.usage.query')}</p>
               <code>
                 curl -N http://localhost:8000/mcp/{tenantName}/{serverName}?token=
                 {token.substring(0, 20)}...
@@ -898,13 +895,13 @@ function TokenManager({
         </div>
       ) : (
         <div className="token-empty">
-          <p>No API token generated yet</p>
+          <p>{t('token.noToken')}</p>
           <button
             className="btn btn-primary"
             onClick={handleGenerate}
             disabled={generateMutation.isPending}
           >
-            {generateMutation.isPending ? 'Generating...' : '🔑 Generate Token'}
+            {generateMutation.isPending ? t('token.generating') : `🔑 ${t('token.generate')}`}
           </button>
         </div>
       )}
