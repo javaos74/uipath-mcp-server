@@ -46,9 +46,6 @@ logs/
 .env.local
 .env.*.local
 
-# Static files (built frontend)
-static/
-
 # OS
 .DS_Store
 Thumbs.db
