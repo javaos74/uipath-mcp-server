@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { serversAPI, toolsAPI, uipathAPI } from '@/lib/api'
 import type { MCPTool, MCPToolCreate, UiPathProcess, UiPathFolder } from '@/types'
 import './ServerDetail.css'
 
 export default function ServerDetail() {
+  const { t } = useTranslation('server')
   const { tenantName, serverName } = useParams<{
     tenantName: string
     serverName: string
@@ -29,7 +31,7 @@ export default function ServerDetail() {
   })
 
   const handleDelete = (toolName: string) => {
-    if (confirm(`Delete tool ${toolName}?`)) {
+    if (confirm(t('detail.tool.confirmDelete', { name: toolName }))) {
       deleteMutation.mutate(toolName)
     }
   }
@@ -42,15 +44,15 @@ export default function ServerDetail() {
     <div className="server-detail">
       <div className="detail-header">
         <div>
-          <Link to="/" className="back-link">← Back to Dashboard</Link>
+          <Link to="/" className="back-link">← {t('detail.backToDashboard')}</Link>
           <h1>{serverName}</h1>
           <div className="server-endpoints">
             <div className="endpoint-group">
-              <span className="endpoint-label">SSE:</span>
+              <span className="endpoint-label">{t('detail.endpoints.sse')}</span>
               <code>/mcp/{tenantName}/{serverName}/sse</code>
             </div>
             <div className="endpoint-group">
-              <span className="endpoint-label">Streamable HTTP:</span>
+              <span className="endpoint-label">{t('detail.endpoints.http')}</span>
               <code>/mcp/{tenantName}/{serverName}</code>
             </div>
           </div>
@@ -59,7 +61,7 @@ export default function ServerDetail() {
           className="btn btn-primary"
           onClick={() => setShowProcessPicker(true)}
         >
-          + Add Tool from UiPath Process
+          + {t('detail.addTool')}
         </button>
       </div>
 
@@ -67,7 +69,7 @@ export default function ServerDetail() {
 
       {!toolsData?.tools || toolsData.tools.length === 0 ? (
         <div className="empty-state">
-          <p>No tools yet. Add a tool from your UiPath processes!</p>
+          <p>{t('detail.emptyTools')}</p>
         </div>
       ) : (
         <div className="tools-list">
@@ -78,11 +80,11 @@ export default function ServerDetail() {
                 {tool.uipath_process_name && (
                   <div className="tool-badges">
                     <span className="tool-badge tool-badge-process">
-                      Process: {tool.uipath_process_name}
+                      {t('detail.tool.process', { name: tool.uipath_process_name })}
                     </span>
                     {tool.uipath_folder_path && (
                       <span className="tool-badge tool-badge-folder">
-                        Folder: {tool.uipath_folder_path}
+                        {t('detail.tool.folder', { path: tool.uipath_folder_path })}
                       </span>
                     )}
                   </div>
@@ -93,7 +95,7 @@ export default function ServerDetail() {
 
               {tool.input_schema?.properties && (
                 <div className="tool-params">
-                  <h4>Parameters:</h4>
+                  <h4>{t('detail.tool.parameters')}</h4>
                   <ul>
                     {Object.entries(tool.input_schema.properties).map(([key, value]: [string, any]) => (
                       <li key={key}>
@@ -102,7 +104,7 @@ export default function ServerDetail() {
                             <code>{key}</code>
                             <span className="param-type">{value.type}</span>
                             {tool.input_schema.required?.includes(key) && (
-                              <span className="param-required">required</span>
+                              <span className="param-required">{t('detail.tool.paramRequired')}</span>
                             )}
                           </div>
                           {value.description && (
@@ -120,13 +122,13 @@ export default function ServerDetail() {
                   className="btn btn-secondary btn-sm"
                   onClick={() => setEditingTool(tool)}
                 >
-                  Edit
+                  {t('detail.tool.edit')}
                 </button>
                 <button
                   className="btn btn-danger btn-sm"
                   onClick={() => handleDelete(tool.name)}
                 >
-                  Delete
+                  {t('detail.tool.delete')}
                 </button>
               </div>
             </div>
@@ -173,6 +175,7 @@ function UiPathProcessPicker({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation('server')
   const [selectedFolder, setSelectedFolder] = useState<any | null>(null)
   const [folderQuery, setFolderQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -205,7 +208,7 @@ function UiPathProcessPicker({
     mutationFn: (data: MCPToolCreate) => toolsAPI.create(tenantName, serverName, data),
     onSuccess,
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to create tool')
+      setError(err.response?.data?.error || t('processPicker.error.loadFailed'))
     },
   })
 
@@ -237,7 +240,7 @@ function UiPathProcessPicker({
 
   const handleCreateTool = () => {
     if (!selectedProcess || !toolName) {
-      setError('Please select a process and enter a tool name')
+      setError(t('processPicker.error.selectProcess'))
       return
     }
 
@@ -281,11 +284,11 @@ function UiPathProcessPicker({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-        <h2>Add Tool from UiPath Process</h2>
+        <h2>{t('processPicker.title')}</h2>
 
         {loadError && (
           <div className="error">
-            {(loadError as any).response?.data?.error || 'Failed to load processes. Please check your UiPath configuration in Settings.'}
+            {(loadError as any).response?.data?.error || t('processPicker.error.loadFailed')}
           </div>
         )}
 
@@ -295,13 +298,13 @@ function UiPathProcessPicker({
           <div className="process-picker">
             {!selectedFolder ? (
               <div className="folder-list">
-                <h3>Step 1: Select a Folder</h3>
+                <h3>{t('processPicker.step1')}</h3>
                 <div className="form-group" style={{ marginTop: 8 }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
                       className="input"
-                      placeholder="Search folders by name..."
+                      placeholder={t('processPicker.searchPlaceholder')}
                       value={folderQuery}
                       onChange={(e) => setFolderQuery(e.target.value)}
                       onKeyPress={(e) => {
@@ -318,7 +321,7 @@ function UiPathProcessPicker({
                       disabled={isLoading}
                       style={{ minWidth: '80px' }}
                     >
-                      {isLoading ? '...' : 'Search'}
+                      {isLoading ? '...' : t('common:button.search', { ns: 'common' })}
                     </button>
                     {searchQuery && (
                       <button
@@ -327,18 +330,18 @@ function UiPathProcessPicker({
                         onClick={handleClearSearch}
                         style={{ minWidth: '80px' }}
                       >
-                        Clear
+                        {t('common:button.clear', { ns: 'common' })}
                       </button>
                     )}
                   </div>
                 </div>
                 {!foldersData?.folders || foldersData.folders.length === 0 ? (
-                  <p className="empty-message">No folders found. Please check your UiPath configuration.</p>
+                  <p className="empty-message">{t('processPicker.noFolders')}</p>
                 ) : (
                   <div className="folders">
                     {searchQuery && foldersData?.matched && foldersData.matched.length > 0 && (
                       <>
-                        <div className="section-subtitle">Matches</div>
+                        <div className="section-subtitle">{t('processPicker.matches')}</div>
                         {foldersData.matched.map((folder: UiPathFolder) => (
                           <div
                             key={`m-${folder.id}`}
