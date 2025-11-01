@@ -295,7 +295,9 @@ class UiPathClient:
         # Query releases by process name
         parsed = urlparse(base_url)
         if len(parsed.path) <= 1:
-            api_url = f"{base_url}/odata/Releases?$filter=ProcessKey eq '{process_name}'"
+            api_url = (
+                f"{base_url}/odata/Releases?$filter=ProcessKey eq '{process_name}'"
+            )
         else:
             api_url = f"{base_url}/orchestrator_/odata/Releases?$filter=ProcessKey eq '{process_name}'"
         logger.info(f"Querying releases: {api_url}")
@@ -350,7 +352,7 @@ class UiPathClient:
         # Construct API URL - using Jobs(id) endpoint
         parsed = urlparse(base_url)
         if len(parsed.path) <= 1:
-            api_url = f"{base_url}/odata/Jobs({job_id})"   
+            api_url = f"{base_url}/odata/Jobs({job_id})"
         else:
             api_url = f"{base_url}/orchestrator_/odata/Jobs({job_id})"
         logger.info(f"API URL: {api_url}")

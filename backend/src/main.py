@@ -46,6 +46,8 @@ def main():
     # Make our modules verbose
     logging.getLogger("uipath-mcp-server").setLevel(logging.DEBUG)
     logging.getLogger("mcp").setLevel(logging.DEBUG)
+    logging.getLogger("uipath_client").setLevel(logging.DEBUG)
+    logging.getLogger("oauth").setLevel(logging.DEBUG)
 
     host = os.getenv("API_HOST", "0.0.0.0")
     port = int(os.getenv("API_PORT", "8000"))
