@@ -1,0 +1,132 @@
+{
+  "dashboard": {
+    "title": "MCP サーバー",
+    "createButton": "新しいサーバーを作成",
+    "empty": "まだサーバーがありません。最初の MCP サーバーを作成しましょう！",
+    "card": {
+      "tools": "{{count}} 個のツール",
+      "tools_plural": "{{count}} 個のツール"
+    }
+  },
+  "detail": {
+    "backToDashboard": "ダッシュボードに戻る",
+    "endpoints": {
+      "sse": "SSE：",
+      "http": "Streamable HTTP："
+    },
+    "addTool": "UiPath プロセスからツールを追加",
+    "emptyTools": "まだツールがありません。UiPath プロセスからツールを追加してください！",
+    "tool": {
+      "process": "プロセス：{{name}}",
+      "folder": "フォルダー：{{path}}",
+      "parameters": "パラメーター：",
+      "paramRequired": "必須",
+      "edit": "編集",
+      "delete": "削除",
+      "confirmDelete": "ツール {{name}} を削除しますか？"
+    }
+  },
+  "token": {
+    "title": "API トークン",
+    "description": "このトークンを使用して、外部 MCP クライアントをこのサーバーに接続します",
+    "show": "表示",
+    "hide": "非表示",
+    "copy": "コピー",
+    "copied": "コピーしました！",
+    "generate": "トークンを生成",
+    "regenerate": "再生成",
+    "revoke": "取り消し",
+    "generating": "生成中...",
+    "revoking": "取り消し中...",
+    "confirmRegenerate": "新しいトークンを生成すると、既存のトークンが無効になります。続行しますか？",
+    "confirmRevoke": "本当にこのトークンを取り消しますか？この操作は元に戻せません。",
+    "noToken": "まだ API トークンが生成されていません",
+    "usage": {
+      "title": "使用方法：",
+      "sse": "SSE 接続（サーバー送信イベント）",
+      "http": "Streamable HTTP 接続",
+      "query": "クエリパラメータを使用（代替方法）"
+    }
+  },
+  "create": {
+    "title": "新しいサーバーを作成",
+    "tenantName": {
+      "label": "テナント名",
+      "placeholder": "my-tenant"
+    },
+    "serverName": {
+      "label": "サーバー名",
+      "placeholder": "my-server"
+    },
+    "description": {
+      "label": "説明（オプション）",
+      "placeholder": "MCP サーバーを説明してください..."
+    },
+    "button": {
+      "create": "サーバーを作成",
+      "creating": "作成中..."
+    },
+    "error": {
+      "exists": "サーバー '{{tenant}}/{{server}}' は既に存在します"
+    }
+  },
+  "processPicker": {
+    "title": "UiPath プロセスからツールを追加",
+    "step1": "ステップ 1：フォルダーを選択",
+    "step2": "ステップ 2：{{folder}} からプロセスを選択",
+    "changeFolder": "フォルダーを変更",
+    "searchPlaceholder": "名前でフォルダーを検索...",
+    "noFolders": "フォルダーが見つかりません。UiPath 設定を確認してください。",
+    "noProcesses": "このフォルダーにプロセスがありません。",
+    "matches": "一致",
+    "allFolders": "すべてのフォルダー",
+    "toolConfig": "ツール設定",
+    "toolName": {
+      "label": "ツール名",
+      "placeholder": "tool_name",
+      "help": "小文字、数字、アンダースコアのみを使用してください"
+    },
+    "processName": "UiPath プロセス",
+    "processKey": {
+      "label": "プロセスキー",
+      "help": "プロセスの一意の識別子"
+    },
+    "description": {
+      "label": "ツールの説明",
+      "placeholder": "このツールが何をするか説明してください..."
+    },
+    "parameters": "入力パラメーター（{{count}} 個）",
+    "paramRequired": "必須",
+    "paramDescription": "パラメーターの説明...",
+    "button": {
+      "create": "ツールを作成",
+      "creating": "作成中..."
+    },
+    "error": {
+      "loadFailed": "プロセスの読み込みに失敗しました。設定で UiPath 設定を確認してください。",
+      "selectProcess": "プロセスを選択してツール名を入力してください"
+    }
+  },
+  "toolEditor": {
+    "title": "ツールを編集：{{name}}",
+    "toolName": {
+      "label": "ツール名",
+      "help": "ツール名は変更できません"
+    },
+    "process": "UiPath プロセス",
+    "processKey": "プロセスキー",
+    "folder": "UiPath フォルダー",
+    "description": {
+      "label": "ツールの説明",
+      "placeholder": "このツールが何をするか説明してください..."
+    },
+    "parameters": "入力パラメーター（{{count}} 個）",
+    "button": {
+      "update": "ツールを更新",
+      "updating": "更新中..."
+    },
+    "error": {
+      "descriptionRequired": "ツールの説明を入力してください"
+    }
+  }
+}

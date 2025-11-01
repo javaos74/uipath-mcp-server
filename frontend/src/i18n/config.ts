@@ -12,10 +12,21 @@ import koAuth from './locales/ko/auth.json'
 import koSettings from './locales/ko/settings.json'
 import koServer from './locales/ko/server.json'
 
+import zhCommon from './locales/zh/common.json'
+import zhAuth from './locales/zh/auth.json'
+import zhSettings from './locales/zh/settings.json'
+import zhServer from './locales/zh/server.json'
+
+import jaCommon from './locales/ja/common.json'
+import jaAuth from './locales/ja/auth.json'
+import jaSettings from './locales/ja/settings.json'
+import jaServer from './locales/ja/server.json'
+
 // Get saved language from localStorage or use browser language
 const savedLanguage = localStorage.getItem('language')
-const browserLanguage = navigator.language.split('-')[0] // 'en-US' -> 'en'
-const defaultLanguage = savedLanguage || (browserLanguage === 'ko' ? 'ko' : 'en')
+const browserLanguage = navigator.language.split('-')[0] // 'en-US' -> 'en', 'zh-CN' -> 'zh'
+const supportedLanguages = ['en', 'ko', 'zh', 'ja']
+const defaultLanguage = savedLanguage || (supportedLanguages.includes(browserLanguage) ? browserLanguage : 'en')
 
 i18n
   .use(initReactI18next)
@@ -32,6 +43,18 @@ i18n
         auth: koAuth,
         settings: koSettings,
         server: koServer,
+      },
+      zh: {
+        common: zhCommon,
+        auth: zhAuth,
+        settings: zhSettings,
+        server: zhServer,
+      },
+      ja: {
+        common: jaCommon,
+        auth: jaAuth,
+        settings: jaSettings,
+        server: jaServer,
       },
     },
     lng: defaultLanguage,
