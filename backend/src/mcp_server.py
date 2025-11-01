@@ -143,6 +143,7 @@ class DynamicMCPServer:
                     try:
                         job = await self.uipath_client.execute_process(
                             process_name=tool["uipath_process_name"],
+                            process_key=tool["uipath_process_key"],
                             folder_path=tool["uipath_folder_path"] or "",
                             input_arguments=arguments,
                             uipath_url=uipath_url,
@@ -180,6 +181,7 @@ class DynamicMCPServer:
                                     logger.info("Retrying process execution with refreshed token...")
                                     job = await self.uipath_client.execute_process(
                                         process_name=tool["uipath_process_name"],
+                                        process_key=tool["uipath_process_key"],
                                         folder_path=tool["uipath_folder_path"] or "",
                                         input_arguments=arguments,
                                         uipath_url=uipath_url,

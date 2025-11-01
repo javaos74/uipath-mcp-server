@@ -264,6 +264,7 @@ function UiPathProcessPicker({
         required,
       },
       uipath_process_name: selectedProcess.name,
+      uipath_process_key: selectedProcess.key || selectedProcess.name,
       uipath_folder_path: selectedFolder?.full_name || selectedFolder?.name || undefined,
       uipath_folder_id: selectedFolder?.id || undefined,
     }
@@ -437,6 +438,17 @@ function UiPathProcessPicker({
                     value={selectedProcess.name}
                     disabled
                   />
+                </div>
+
+                <div className="form-group">
+                  <label>Process Key</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={selectedProcess.key || selectedProcess.name || 'N/A'}
+                    disabled
+                  />
+                  <small>Unique identifier for the process</small>
                 </div>
 
                 <div className="form-group">
@@ -629,6 +641,18 @@ function ToolEditor({
                   disabled
                 />
               </div>
+
+              {tool.uipath_process_key && (
+                <div className="form-group">
+                  <label>Process Key</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={tool.uipath_process_key}
+                    disabled
+                  />
+                </div>
+              )}
 
               {tool.uipath_folder_path && (
                 <div className="form-group">

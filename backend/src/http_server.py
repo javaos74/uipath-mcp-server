@@ -983,6 +983,7 @@ async def create_tool(request):
             description=tool.description,
             input_schema=tool.input_schema,
             uipath_process_name=tool.uipath_process_name,
+            uipath_process_key=tool.uipath_process_key,
             uipath_folder_path=tool.uipath_folder_path,
             uipath_folder_id=tool.uipath_folder_id,
         )
@@ -1056,6 +1057,7 @@ async def update_tool(request):
             description=tool_update.description,
             input_schema=tool_update.input_schema,
             uipath_process_name=tool_update.uipath_process_name,
+            uipath_process_key=tool_update.uipath_process_key,
             uipath_folder_path=tool_update.uipath_folder_path,
             uipath_folder_id=tool_update.uipath_folder_id,
         )

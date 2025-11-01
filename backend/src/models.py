@@ -134,6 +134,9 @@ class ToolCreate(BaseModel):
     uipath_process_name: Optional[str] = Field(
         None, description="UiPath process name to execute (optional)"
     )
+    uipath_process_key: Optional[str] = Field(
+        None, description="UiPath process key (optional)"
+    )
     uipath_folder_path: Optional[str] = Field(
         None, description="UiPath folder path (optional)"
     )
@@ -150,6 +153,7 @@ class ToolUpdate(BaseModel):
         None, description="JSON Schema for tool input"
     )
     uipath_process_name: Optional[str] = Field(None, description="UiPath process name")
+    uipath_process_key: Optional[str] = Field(None, description="UiPath process key")
     uipath_folder_path: Optional[str] = Field(None, description="UiPath folder path")
     uipath_folder_id: Optional[str] = Field(None, description="UiPath folder ID")
 
@@ -163,6 +167,7 @@ class ToolResponse(BaseModel):
     description: str
     input_schema: Dict[str, Any]
     uipath_process_name: Optional[str]
+    uipath_process_key: Optional[str]
     uipath_folder_path: Optional[str]
     uipath_folder_id: Optional[str]
     created_at: str

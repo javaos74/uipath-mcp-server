@@ -136,6 +136,11 @@ export default function Settings() {
                 setFormData({ ...formData, uipath_url: e.target.value })
               }
             />
+            <small className="form-help">
+              <strong>URL Format:</strong><br />
+              • <strong>MSI (On-Premise):</strong> https://{'<domain_name>'}<br />
+              • <strong>Automation Suite:</strong> https://{'<domain_name>/<org_name>/<tenant_name>'}
+            </small>
           </div>
 
           <div className="form-group">

@@ -101,6 +101,7 @@ class Database:
                     description TEXT,
                     input_schema TEXT NOT NULL,
                     uipath_process_name TEXT,
+                    uipath_process_key TEXT,
                     uipath_folder_path TEXT,
                     uipath_folder_id TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -110,6 +111,16 @@ class Database:
                 )
             """
             )
+
+            # Add uipath_process_key column if it doesn't exist (migration)
+            try:
+                await db.execute(
+                    "ALTER TABLE mcp_tools ADD COLUMN uipath_process_key TEXT"
+                )
+                await db.commit()
+            except aiosqlite.OperationalError:
+                # Column already exists, ignore
+                pass
 
             # Create indexes for better query performance
             await db.execute(
@@ -303,6 +314,7 @@ class Database:
 
         # Log the SQL query for debugging
         import logging
+
         logger = logging.getLogger(__name__)
         sql_query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
         logger.info(f"Executing SQL: {sql_query}")
@@ -581,6 +593,7 @@ class Database:
         description: str,
         input_schema: Dict[str, Any],
         uipath_process_name: Optional[str] = None,
+        uipath_process_key: Optional[str] = None,
         uipath_folder_path: Optional[str] = None,
         uipath_folder_id: Optional[str] = None,
     ) -> int:
@@ -592,6 +605,7 @@ class Database:
             description: Tool description
             input_schema: JSON Schema for tool input (MCP Tool spec)
             uipath_process_name: UiPath process name (optional)
+            uipath_process_key: UiPath process key (optional)
             uipath_folder_path: UiPath folder path (optional)
             uipath_folder_id: UiPath folder ID (optional)
 
@@ -603,8 +617,8 @@ class Database:
                 """
                 INSERT INTO mcp_tools 
                 (server_id, name, description, input_schema, 
-                 uipath_process_name, uipath_folder_path, uipath_folder_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                 uipath_process_name, uipath_process_key, uipath_folder_path, uipath_folder_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     server_id,
@@ -612,6 +626,7 @@ class Database:
                     description,
                     json.dumps(input_schema),
                     uipath_process_name,
+                    uipath_process_key,
                     uipath_folder_path,
                     uipath_folder_id,
                 ),
@@ -639,6 +654,10 @@ class Database:
             )
             row = await cursor.fetchone()
             if row:
+                try:
+                    process_key = row["uipath_process_key"]
+                except (KeyError, IndexError):
+                    process_key = None
                 return {
                     "id": row["id"],
                     "server_id": row["server_id"],
@@ -646,6 +665,7 @@ class Database:
                     "description": row["description"],
                     "input_schema": json.loads(row["input_schema"]),
                     "uipath_process_name": row["uipath_process_name"],
+                    "uipath_process_key": process_key,
                     "uipath_folder_path": row["uipath_folder_path"],
                     "uipath_folder_id": row["uipath_folder_id"],
                     "created_at": row["created_at"],
@@ -669,21 +689,28 @@ class Database:
                 (server_id,),
             )
             rows = await cursor.fetchall()
-            return [
-                {
-                    "id": row["id"],
-                    "server_id": row["server_id"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "input_schema": json.loads(row["input_schema"]),
-                    "uipath_process_name": row["uipath_process_name"],
-                    "uipath_folder_path": row["uipath_folder_path"],
-                    "uipath_folder_id": row["uipath_folder_id"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                }
-                for row in rows
-            ]
+            result = []
+            for row in rows:
+                try:
+                    process_key = row["uipath_process_key"]
+                except (KeyError, IndexError):
+                    process_key = None
+                result.append(
+                    {
+                        "id": row["id"],
+                        "server_id": row["server_id"],
+                        "name": row["name"],
+                        "description": row["description"],
+                        "input_schema": json.loads(row["input_schema"]),
+                        "uipath_process_name": row["uipath_process_name"],
+                        "uipath_process_key": process_key,
+                        "uipath_folder_path": row["uipath_folder_path"],
+                        "uipath_folder_id": row["uipath_folder_id"],
+                        "created_at": row["created_at"],
+                        "updated_at": row["updated_at"],
+                    }
+                )
+            return result
 
     async def update_tool(
         self,
@@ -692,6 +719,7 @@ class Database:
         description: Optional[str] = None,
         input_schema: Optional[Dict[str, Any]] = None,
         uipath_process_name: Optional[str] = None,
+        uipath_process_key: Optional[str] = None,
         uipath_folder_path: Optional[str] = None,
         uipath_folder_id: Optional[str] = None,
     ) -> bool:
@@ -703,6 +731,7 @@ class Database:
             description: New description (optional)
             input_schema: New input schema (optional)
             uipath_process_name: New UiPath process name (optional)
+            uipath_process_key: New UiPath process key (optional)
             uipath_folder_path: New UiPath folder path (optional)
             uipath_folder_id: New UiPath folder ID (optional)
 
@@ -721,6 +750,9 @@ class Database:
         if uipath_process_name is not None:
             updates.append("uipath_process_name = ?")
             params.append(uipath_process_name)
+        if uipath_process_key is not None:
+            updates.append("uipath_process_key = ?")
+            params.append(uipath_process_key)
         if uipath_folder_path is not None:
             updates.append("uipath_folder_path = ?")
             params.append(uipath_folder_path)

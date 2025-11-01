@@ -56,6 +56,7 @@ export interface MCPTool {
   description: string
   input_schema: Record<string, any>
   uipath_process_name: string | null
+  uipath_process_key: string | null
   uipath_folder_path: string | null
   uipath_folder_id: string | null
   created_at: string
@@ -67,6 +68,7 @@ export interface MCPToolCreate {
   description: string
   input_schema: Record<string, any>
   uipath_process_name?: string
+  uipath_process_key?: string
   uipath_folder_path?: string
   uipath_folder_id?: string
 }

@@ -57,6 +57,7 @@ class UiPathClient:
     async def execute_process(
         self,
         process_name: str,
+        process_key: str,
         folder_path: str,
         input_arguments: Dict[str, Any],
         uipath_url: Optional[str] = None,
@@ -98,6 +99,7 @@ class UiPathClient:
             logger.info("Using REST API for On-Premise/Self-hosted")
             return await self._execute_process_rest(
                 process_name,
+                process_key,
                 folder_path,
                 input_arguments,
                 uipath_url,
@@ -155,6 +157,7 @@ class UiPathClient:
     async def _execute_process_rest(
         self,
         process_name: str,
+        process_key: str,
         folder_path: str,
         input_arguments: Dict[str, Any],
         uipath_url: Optional[str] = None,
@@ -182,9 +185,9 @@ class UiPathClient:
             raise Exception("UiPath URL and token are required")
 
         # Get release key for the process
-        logger.info(f"Getting release key for process: {process_name}")
+        logger.info(f"Getting release key for process: {process_key}")
         release_key = await self._get_release_key(
-            process_name, folder_id, base_url, token
+            process_key, folder_id, base_url, token
         )
 
         if not release_key:
@@ -558,17 +561,22 @@ class UiPathClient:
                 data = releases_response.json()
 
             releases = data.get("value", [])
+            logger.info(f"Found {len(releases)} releases in folder {folder_id}")
 
             result = []
-            seen_keys = set()  # To avoid duplicates
+            seen_names= set()  # To avoid duplicates
 
             for release in releases:
                 # Get unique process key
-                process_key = release.get("ProcessKey")
-                if not process_key or process_key in seen_keys:
+                process_name = release.get("Name")
+                if not process_name or process_name in seen_names:
                     continue
 
-                seen_keys.add(process_key)
+                seen_names.add(process_name)
+
+                # Use Release Key (GUID) as the unique identifier, not ProcessKey
+                process_key = release.get("Key") or release.get("ProcessKey")
+                logger.info(f"Process: {process_name}, Key: {release.get('Key')}, ProcessKey: {release.get('ProcessKey')}")
 
                 # Extract input parameters from arguments
                 input_params = []
