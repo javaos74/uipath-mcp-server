@@ -5,6 +5,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 import './Layout.css'
 
 export default function Layout() {
+  const { t } = useTranslation('auth')
   const { user, clearAuth } = useAuthStore()
   const navigate = useNavigate()
 
@@ -18,7 +19,7 @@ export default function Layout() {
       <header className="header">
         <div className="container header-content">
           <Link to="/" className="logo">
-            UiPath MCP Manager
+            {t('common:app.title', { ns: 'common' })}
           </Link>
           
           <nav className="nav">
@@ -31,7 +32,7 @@ export default function Layout() {
             <span className="user-name">{user?.username}</span>
             <span className="user-role">{user?.role}</span>
             <button onClick={handleLogout} className="btn btn-secondary btn-sm">
-              Logout
+              {t('logout')}
             </button>
           </div>
         </div>

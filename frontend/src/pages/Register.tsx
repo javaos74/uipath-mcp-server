@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { authAPI } from '@/lib/api'
 import './Auth.css'
 
 export default function Register() {
+  const { t } = useTranslation('auth')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -30,12 +32,12 @@ export default function Register() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-title">Register</h1>
-        <p className="auth-subtitle">Create your account</p>
+        <h1 className="auth-title">{t('register.title')}</h1>
+        <p className="auth-subtitle">{t('common:app.title', { ns: 'common' })}</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">{t('register.username')}</label>
             <input
               id="username"
               type="text"
@@ -48,7 +50,7 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t('register.email')}</label>
             <input
               id="email"
               type="email"
@@ -60,7 +62,7 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('register.password')}</label>
             <input
               id="password"
               type="password"
@@ -79,12 +81,12 @@ export default function Register() {
             className="btn btn-primary btn-block"
             disabled={loading}
           >
-            {loading ? 'Creating account...' : 'Register'}
+            {loading ? `${t('register.button')}...` : t('register.button')}
           </button>
         </form>
 
         <p className="auth-footer">
-          Already have an account? <Link to="/login">Login</Link>
+          {t('register.hasAccount')} <Link to="/login">{t('register.signIn')}</Link>
         </p>
       </div>
     </div>
