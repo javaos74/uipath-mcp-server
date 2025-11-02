@@ -133,8 +133,31 @@ class DynamicMCPServer:
                         user = await self.db.get_user_by_id(self.user_id)
                         if user:
                             uipath_url = user.get("uipath_url")
-                            uipath_token = user.get("uipath_access_token")
                             user_info = user
+                            
+                            # Proactively ensure valid OAuth token
+                            if user.get("uipath_auth_type") == "oauth":
+                                from .oauth import get_valid_token
+                                try:
+                                    uipath_token = await get_valid_token(
+                                        current_token=user.get("uipath_access_token"),
+                                        uipath_url=uipath_url,
+                                        client_id=user.get("uipath_client_id"),
+                                        client_secret=user.get("uipath_client_secret"),
+                                    )
+                                    # Update DB if token was refreshed
+                                    if uipath_token != user.get("uipath_access_token"):
+                                        await self.db.update_user_uipath_config(
+                                            user_id=self.user_id,
+                                            uipath_access_token=uipath_token,
+                                        )
+                                        logger.info("Proactively refreshed OAuth token before process execution")
+                                except Exception as token_err:
+                                    logger.warning(f"Proactive token refresh failed: {token_err}")
+                                    uipath_token = user.get("uipath_access_token")
+                            else:
+                                # PAT mode - use as-is
+                                uipath_token = user.get("uipath_access_token")
 
                     # Execute process
                     logger.info(

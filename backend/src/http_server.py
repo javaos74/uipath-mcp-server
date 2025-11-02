@@ -39,7 +39,7 @@ from .models import (
     ToolCreate,
     ToolUpdate,
 )
-from .oauth import exchange_client_credentials_for_token
+from .oauth import exchange_client_credentials_for_token, get_valid_token, get_valid_token
 
 
 # No-op ASGI callable for handlers that already sent response
@@ -379,10 +379,71 @@ async def update_uipath_config(request):
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
+async def _ensure_valid_oauth_token(user_id: int) -> Optional[str]:
+    """Ensure user has a valid OAuth token, refreshing proactively if needed.
+    
+    This function checks if the token is expired BEFORE making API calls,
+    preventing 401 errors. Only works for OAuth authentication.
+    
+    Args:
+        user_id: User ID
+        
+    Returns:
+        Valid access token if OAuth is configured, None otherwise
+    """
+    from .oauth import get_valid_token
+    
+    # Get user data
+    user_data = await db.get_user_by_id(user_id)
+    if not user_data:
+        return None
+    
+    # Only handle OAuth tokens
+    if user_data.get("uipath_auth_type") != "oauth":
+        # PAT mode - return existing token as-is
+        return user_data.get("uipath_access_token")
+    
+    # Check if we have OAuth credentials
+    uipath_url = user_data.get("uipath_url")
+    client_id = user_data.get("uipath_client_id")
+    client_secret = user_data.get("uipath_client_secret")
+    current_token = user_data.get("uipath_access_token")
+    
+    if not all([uipath_url, client_id, client_secret]):
+        logger.warning("OAuth mode but missing credentials")
+        return current_token
+    
+    try:
+        # Get valid token (will refresh if expired)
+        valid_token = await get_valid_token(
+            current_token=current_token,
+            uipath_url=uipath_url,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+        
+        # Update DB if token changed
+        if valid_token != current_token:
+            await db.update_user_uipath_config(
+                user_id=user_id,
+                uipath_access_token=valid_token,
+            )
+            logger.info(f"Proactively refreshed OAuth token for user {user_id}")
+        
+        return valid_token
+        
+    except Exception as e:
+        logger.error(f"Failed to ensure valid OAuth token: {e}")
+        return current_token  # Return current token and let it fail naturally
+
+
 async def _refresh_oauth_token_if_needed(
     user_id: int, error_message: str
 ) -> Optional[str]:
-    """Refresh OAuth token if 401 error detected.
+    """Refresh OAuth token if 401 error detected (reactive fallback).
+    
+    This is a fallback for when proactive refresh didn't happen or failed.
+    Only works for OAuth authentication.
 
     Args:
         user_id: User ID
@@ -404,9 +465,9 @@ async def _refresh_oauth_token_if_needed(
     if not user_data:
         return None
 
-    # Only refresh if using OAuth
+    # Only refresh if using OAuth (PAT cannot be refreshed)
     if user_data.get("uipath_auth_type") != "oauth":
-        logger.info("User is not using OAuth, cannot refresh token")
+        logger.info("User is using PAT, cannot refresh token - user must update manually")
         return None
 
     # Check if we have OAuth credentials
@@ -452,9 +513,17 @@ async def list_uipath_folders(request):
 
     # Get user's UiPath credentials
     user_data = await db.get_user_by_id(user.id)
-    if not user_data.get("uipath_url") or not user_data.get("uipath_access_token"):
+    if not user_data.get("uipath_url"):
         return JSONResponse(
             {"error": "UiPath configuration not set. Please configure in Settings."},
+            status_code=400,
+        )
+
+    # Proactively ensure valid token (OAuth only, PAT passes through)
+    valid_token = await _ensure_valid_oauth_token(user.id)
+    if not valid_token:
+        return JSONResponse(
+            {"error": "UiPath access token not configured. Please configure in Settings."},
             status_code=400,
         )
 
@@ -469,14 +538,14 @@ async def list_uipath_folders(request):
         if q:
             matched = await client.list_folders(
                 uipath_url=user_data["uipath_url"],
-                uipath_access_token=user_data["uipath_access_token"],
+                uipath_access_token=valid_token,
                 search=q,
             )
 
         # Always also return the full list as today
         folders = await client.list_folders(
             uipath_url=user_data["uipath_url"],
-            uipath_access_token=user_data["uipath_access_token"],
+            uipath_access_token=valid_token,
         )
 
         return JSONResponse(
@@ -542,9 +611,17 @@ async def list_uipath_processes(request):
 
     # Get user's UiPath credentials
     user_data = await db.get_user_by_id(user.id)
-    if not user_data.get("uipath_url") or not user_data.get("uipath_access_token"):
+    if not user_data.get("uipath_url"):
         return JSONResponse(
             {"error": "UiPath configuration not set. Please configure in Settings."},
+            status_code=400,
+        )
+
+    # Proactively ensure valid token (OAuth only, PAT passes through)
+    valid_token = await _ensure_valid_oauth_token(user.id)
+    if not valid_token:
+        return JSONResponse(
+            {"error": "UiPath access token not configured. Please configure in Settings."},
             status_code=400,
         )
 
@@ -555,7 +632,7 @@ async def list_uipath_processes(request):
         processes = await client.list_processes(
             folder_id=folder_id,
             uipath_url=user_data["uipath_url"],
-            uipath_access_token=user_data["uipath_access_token"],
+            uipath_access_token=valid_token,
         )
 
         return JSONResponse({"count": len(processes), "processes": processes})
