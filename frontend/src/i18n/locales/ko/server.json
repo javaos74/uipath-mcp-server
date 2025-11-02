@@ -1,0 +1,132 @@
+{
+  "dashboard": {
+    "title": "MCP 서버",
+    "createButton": "새 서버 만들기",
+    "empty": "아직 서버가 없습니다. 첫 번째 MCP 서버를 만들어보세요!",
+    "card": {
+      "tools": "{{count}}개의 도구",
+      "tools_plural": "{{count}}개의 도구"
+    }
+  },
+  "detail": {
+    "backToDashboard": "대시보드로 돌아가기",
+    "endpoints": {
+      "sse": "SSE:",
+      "http": "Streamable HTTP:"
+    },
+    "addTool": "UiPath 프로세스에서 도구 추가",
+    "emptyTools": "아직 도구가 없습니다. UiPath 프로세스에서 도구를 추가하세요!",
+    "tool": {
+      "process": "프로세스: {{name}}",
+      "folder": "폴더: {{path}}",
+      "parameters": "매개변수:",
+      "paramRequired": "필수",
+      "edit": "편집",
+      "delete": "삭제",
+      "confirmDelete": "도구 {{name}}을(를) 삭제하시겠습니까?"
+    }
+  },
+  "token": {
+    "title": "API 토큰",
+    "description": "이 토큰을 사용하여 외부 MCP 클라이언트를 이 서버에 연결하세요",
+    "show": "보기",
+    "hide": "숨기기",
+    "copy": "복사",
+    "copied": "복사됨!",
+    "generate": "토큰 생성",
+    "regenerate": "재생성",
+    "revoke": "취소",
+    "generating": "생성 중...",
+    "revoking": "취소 중...",
+    "confirmRegenerate": "새 토큰을 생성하면 기존 토큰이 무효화됩니다. 계속하시겠습니까?",
+    "confirmRevoke": "정말 이 토큰을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "noToken": "아직 API 토큰이 생성되지 않았습니다",
+    "usage": {
+      "title": "사용 방법:",
+      "sse": "SSE 연결 (Server-Sent Events)",
+      "http": "Streamable HTTP 연결",
+      "query": "쿼리 파라미터 사용 (대안)"
+    }
+  },
+  "create": {
+    "title": "새 서버 만들기",
+    "tenantName": {
+      "label": "테넌트 이름",
+      "placeholder": "my-tenant"
+    },
+    "serverName": {
+      "label": "서버 이름",
+      "placeholder": "my-server"
+    },
+    "description": {
+      "label": "설명 (선택사항)",
+      "placeholder": "MCP 서버를 설명하세요..."
+    },
+    "button": {
+      "create": "서버 생성",
+      "creating": "생성 중..."
+    },
+    "error": {
+      "exists": "서버 '{{tenant}}/{{server}}'가 이미 존재합니다"
+    }
+  },
+  "processPicker": {
+    "title": "UiPath 프로세스에서 도구 추가",
+    "step1": "1단계: 폴더 선택",
+    "step2": "2단계: {{folder}}에서 프로세스 선택",
+    "changeFolder": "폴더 변경",
+    "searchPlaceholder": "이름으로 폴더 검색...",
+    "noFolders": "폴더를 찾을 수 없습니다. UiPath 설정을 확인하세요.",
+    "noProcesses": "이 폴더에 프로세스가 없습니다.",
+    "matches": "일치 항목",
+    "allFolders": "모든 폴더",
+    "toolConfig": "도구 설정",
+    "toolName": {
+      "label": "도구 이름",
+      "placeholder": "tool_name",
+      "help": "소문자, 숫자, 밑줄만 사용하세요"
+    },
+    "processName": "UiPath 프로세스",
+    "processKey": {
+      "label": "프로세스 키",
+      "help": "프로세스의 고유 식별자"
+    },
+    "description": {
+      "label": "도구 설명",
+      "placeholder": "이 도구가 하는 일을 설명하세요..."
+    },
+    "parameters": "입력 매개변수 ({{count}}개)",
+    "paramRequired": "필수",
+    "paramDescription": "매개변수 설명...",
+    "button": {
+      "create": "도구 생성",
+      "creating": "생성 중..."
+    },
+    "error": {
+      "loadFailed": "프로세스를 불러오는데 실패했습니다. 설정에서 UiPath 구성을 확인하세요.",
+      "selectProcess": "프로세스를 선택하고 도구 이름을 입력하세요"
+    }
+  },
+  "toolEditor": {
+    "title": "도구 편집: {{name}}",
+    "toolName": {
+      "label": "도구 이름",
+      "help": "도구 이름은 변경할 수 없습니다"
+    },
+    "process": "UiPath 프로세스",
+    "processKey": "프로세스 키",
+    "folder": "UiPath 폴더",
+    "description": {
+      "label": "도구 설명",
+      "placeholder": "이 도구가 하는 일을 설명하세요..."
+    },
+    "parameters": "입력 매개변수 ({{count}}개)",
+    "button": {
+      "update": "도구 업데이트",
+      "updating": "업데이트 중..."
+    },
+    "error": {
+      "descriptionRequired": "도구 설명을 입력하세요"
+    }
+  }
+}

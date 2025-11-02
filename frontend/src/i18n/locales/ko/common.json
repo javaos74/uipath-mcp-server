@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "UiPath MCP 서버",
+    "loading": "로딩 중...",
+    "error": "오류",
+    "success": "성공"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "settings": "설정"
+  },
+  "button": {
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "편집",
+    "create": "생성",
+    "back": "뒤로",
+    "close": "닫기",
+    "confirm": "확인",
+    "search": "검색",
+    "clear": "지우기",
+    "add": "추가",
+    "update": "업데이트",
+    "generate": "생성",
+    "regenerate": "재생성",
+    "revoke": "취소",
+    "copy": "복사",
+    "show": "보기",
+    "hide": "숨기기"
+  },
+  "status": {
+    "active": "활성",
+    "inactive": "비활성",
+    "pending": "대기 중",
+    "completed": "완료",
+    "failed": "실패"
+  },
+  "message": {
+    "confirmDelete": "정말 삭제하시겠습니까?",
+    "saved": "성공적으로 저장되었습니다",
+    "deleted": "성공적으로 삭제되었습니다",
+    "updated": "성공적으로 업데이트되었습니다",
+    "created": "성공적으로 생성되었습니다",
+    "copied": "클립보드에 복사되었습니다"
+  }
+}

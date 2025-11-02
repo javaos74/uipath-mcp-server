@@ -1,0 +1,132 @@
+{
+  "dashboard": {
+    "title": "MCP Servers",
+    "createButton": "Create New Server",
+    "empty": "No servers yet. Create your first MCP server!",
+    "card": {
+      "tools": "{{count}} tool",
+      "tools_plural": "{{count}} tools"
+    }
+  },
+  "detail": {
+    "backToDashboard": "Back to Dashboard",
+    "endpoints": {
+      "sse": "SSE:",
+      "http": "Streamable HTTP:"
+    },
+    "addTool": "Add Tool from UiPath Process",
+    "emptyTools": "No tools yet. Add a tool from your UiPath processes!",
+    "tool": {
+      "process": "Process: {{name}}",
+      "folder": "Folder: {{path}}",
+      "parameters": "Parameters:",
+      "paramRequired": "required",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Delete tool {{name}}?"
+    }
+  },
+  "token": {
+    "title": "API Token",
+    "description": "Use this token to connect external MCP clients to this server",
+    "show": "Show",
+    "hide": "Hide",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "generate": "Generate Token",
+    "regenerate": "Regenerate",
+    "revoke": "Revoke",
+    "generating": "Generating...",
+    "revoking": "Revoking...",
+    "confirmRegenerate": "Generating a new token will invalidate the existing token. Continue?",
+    "confirmRevoke": "Are you sure you want to revoke this token? This cannot be undone.",
+    "noToken": "No API token generated yet",
+    "usage": {
+      "title": "How to use:",
+      "sse": "SSE Connection (Server-Sent Events)",
+      "http": "Streamable HTTP Connection",
+      "query": "With Query Parameter (Alternative)"
+    }
+  },
+  "create": {
+    "title": "Create New Server",
+    "tenantName": {
+      "label": "Tenant Name",
+      "placeholder": "my-tenant"
+    },
+    "serverName": {
+      "label": "Server Name",
+      "placeholder": "my-server"
+    },
+    "description": {
+      "label": "Description (Optional)",
+      "placeholder": "Describe your MCP server..."
+    },
+    "button": {
+      "create": "Create Server",
+      "creating": "Creating..."
+    },
+    "error": {
+      "exists": "Server '{{tenant}}/{{server}}' already exists"
+    }
+  },
+  "processPicker": {
+    "title": "Add Tool from UiPath Process",
+    "step1": "Step 1: Select a Folder",
+    "step2": "Step 2: Select a Process from {{folder}}",
+    "changeFolder": "Change Folder",
+    "searchPlaceholder": "Search folders by name...",
+    "noFolders": "No folders found. Please check your UiPath configuration.",
+    "noProcesses": "No processes found in this folder.",
+    "matches": "Matches",
+    "allFolders": "All Folders",
+    "toolConfig": "Tool Configuration",
+    "toolName": {
+      "label": "Tool Name",
+      "placeholder": "tool_name",
+      "help": "Use lowercase letters, numbers, and underscores only"
+    },
+    "processName": "UiPath Process",
+    "processKey": {
+      "label": "Process Key",
+      "help": "Unique identifier for the process"
+    },
+    "description": {
+      "label": "Tool Description",
+      "placeholder": "Describe what this tool does..."
+    },
+    "parameters": "Input Parameters ({{count}})",
+    "paramRequired": "Required",
+    "paramDescription": "Parameter description...",
+    "button": {
+      "create": "Create Tool",
+      "creating": "Creating..."
+    },
+    "error": {
+      "loadFailed": "Failed to load processes. Please check your UiPath configuration in Settings.",
+      "selectProcess": "Please select a process and enter a tool name"
+    }
+  },
+  "toolEditor": {
+    "title": "Edit Tool: {{name}}",
+    "toolName": {
+      "label": "Tool Name",
+      "help": "Tool name cannot be changed"
+    },
+    "process": "UiPath Process",
+    "processKey": "Process Key",
+    "folder": "UiPath Folder",
+    "description": {
+      "label": "Tool Description",
+      "placeholder": "Describe what this tool does..."
+    },
+    "parameters": "Input Parameters ({{count}})",
+    "button": {
+      "update": "Update Tool",
+      "updating": "Updating..."
+    },
+    "error": {
+      "descriptionRequired": "Please enter a tool description"
+    }
+  }
+}

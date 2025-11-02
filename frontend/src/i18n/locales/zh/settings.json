@@ -1,0 +1,58 @@
+{
+  "title": "设置",
+  "userInfo": {
+    "title": "用户信息",
+    "username": "用户名",
+    "email": "电子邮件",
+    "role": "角色"
+  },
+  "uipath": {
+    "title": "UiPath 配置",
+    "description": "配置您的 UiPath 凭据。这些凭据将在执行 RPA 流程时使用。",
+    "url": {
+      "label": "UiPath Cloud/Automation Suite URL",
+      "placeholder": "https://cloud.uipath.com/org_name/tenant_name",
+      "help": {
+        "title": "URL 格式：",
+        "msi": "MSI（本地部署）：https://<域名>",
+        "suite": "Automation Suite：https://<域名>/<组织名>/<租户名>"
+      }
+    },
+    "authType": {
+      "label": "认证类型",
+      "pat": "个人访问令牌（PAT）",
+      "oauth": "OAuth 2.0（客户端凭据）"
+    },
+    "pat": {
+      "label": "UiPath 个人访问令牌（PAT）",
+      "placeholder": "未找到 PAT - 请输入您的 UiPath PAT",
+      "placeholderExists": "••••••••••••••••",
+      "help": "您的 PAT 将被安全存储。",
+      "helpExists": "当前：••••••••••••••••（已安全存储）"
+    },
+    "oauth": {
+      "clientId": {
+        "label": "OAuth 客户端 ID",
+        "placeholder": "请输入您的 OAuth 客户端 ID",
+        "help": "来自您的 UiPath OAuth 应用程序的客户端 ID",
+        "helpExists": "当前：{{clientId}}"
+      },
+      "clientSecret": {
+        "label": "OAuth 客户端密钥",
+        "placeholder": "请输入您的 OAuth 客户端密钥",
+        "placeholderExists": "••••••••••••••••",
+        "help": "客户端密钥将被安全存储并用于获取访问令牌",
+        "helpExists": "当前：••••••••••••••••（已安全存储）"
+      }
+    },
+    "button": {
+      "save": "保存配置",
+      "saving": "保存中..."
+    },
+    "message": {
+      "success": "UiPath 配置已成功更新",
+      "oauthFailed": "OAuth 凭据已保存，但令牌生成失败。请检查您的凭据和 UiPath URL。",
+      "saved": "配置已保存"
+    }
+  }
+}

@@ -1,8 +1,11 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from './LanguageSwitcher'
 import './Layout.css'
 
 export default function Layout() {
+  const { t } = useTranslation('auth')
   const { user, clearAuth } = useAuthStore()
   const navigate = useNavigate()
 
@@ -16,19 +19,20 @@ export default function Layout() {
       <header className="header">
         <div className="container header-content">
           <Link to="/" className="logo">
-            UiPath MCP Manager
+            {t('common:app.title', { ns: 'common' })}
           </Link>
           
           <nav className="nav">
-            <Link to="/" className="nav-link">Dashboard</Link>
-            <Link to="/settings" className="nav-link">Settings</Link>
+            <Link to="/" className="nav-link">{t('common:nav.dashboard', { ns: 'common' })}</Link>
+            <Link to="/settings" className="nav-link">{t('common:nav.settings', { ns: 'common' })}</Link>
           </nav>
 
           <div className="user-menu">
+            <LanguageSwitcher />
             <span className="user-name">{user?.username}</span>
             <span className="user-role">{user?.role}</span>
             <button onClick={handleLogout} className="btn btn-secondary btn-sm">
-              Logout
+              {t('logout')}
             </button>
           </div>
         </div>

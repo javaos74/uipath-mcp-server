@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { serversAPI } from '@/lib/api'
 import type { MCPServerCreate, MCPServer } from '@/types'
 import './Dashboard.css'
 
 export default function Dashboard() {
+  const { t } = useTranslation('server')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const queryClient = useQueryClient()
 
@@ -23,7 +25,7 @@ export default function Dashboard() {
   })
 
   const handleDelete = (tenantName: string, serverName: string) => {
-    if (confirm(`Delete server ${tenantName}/${serverName}?`)) {
+    if (confirm(t('common:message.confirmDelete', { ns: 'common' }))) {
       deleteMutation.mutate({ tenantName, serverName })
     }
   }
@@ -35,18 +37,18 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>MCP Servers</h1>
+        <h1>{t('dashboard.title')}</h1>
         <button
           className="btn btn-primary"
           onClick={() => setShowCreateModal(true)}
         >
-          + Create Server
+          + {t('dashboard.createButton')}
         </button>
       </div>
 
       {!data?.servers || data.servers.length === 0 ? (
         <div className="empty-state">
-          <p>No MCP servers yet. Create your first server to get started!</p>
+          <p>{t('dashboard.empty')}</p>
         </div>
       ) : (
         <div className="servers-grid">
@@ -63,11 +65,11 @@ export default function Dashboard() {
 
               <div className="server-endpoint">
                 <div className="endpoint-item">
-                  <span className="endpoint-label">SSE:</span>
+                  <span className="endpoint-label">{t('detail.endpoints.sse')}</span>
                   <code>/mcp/{server.tenant_name}/{server.server_name}/sse</code>
                 </div>
                 <div className="endpoint-item">
-                  <span className="endpoint-label">Streamable HTTP:</span>
+                  <span className="endpoint-label">{t('detail.endpoints.http')}</span>
                   <code>/mcp/{server.tenant_name}/{server.server_name}</code>
                 </div>
               </div>
@@ -77,13 +79,13 @@ export default function Dashboard() {
                   to={`/servers/${server.tenant_name}/${server.server_name}`}
                   className="btn btn-primary btn-sm"
                 >
-                  Manage Tools
+                  {t('common:button.edit', { ns: 'common' })}
                 </Link>
                 <button
                   className="btn btn-danger btn-sm"
                   onClick={() => handleDelete(server.tenant_name, server.server_name)}
                 >
-                  Delete
+                  {t('common:button.delete', { ns: 'common' })}
                 </button>
               </div>
             </div>
@@ -111,6 +113,7 @@ function CreateServerModal({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation('server')
   const [formData, setFormData] = useState<MCPServerCreate>({
     tenant_name: '',
     server_name: '',
@@ -122,7 +125,7 @@ function CreateServerModal({
     mutationFn: serversAPI.create,
     onSuccess,
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to create server')
+      setError(err.response?.data?.error || t('create.error.exists', { tenant: formData.tenant_name, server: formData.server_name }))
     },
   })
 
@@ -134,14 +137,15 @@ function CreateServerModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Create MCP Server</h2>
+        <h2>{t('create.title')}</h2>
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
-            <label>Tenant Name</label>
+            <label>{t('create.tenantName.label')}</label>
             <input
               type="text"
               className="input"
+              placeholder={t('create.tenantName.placeholder')}
               value={formData.tenant_name}
               onChange={(e) =>
                 setFormData({ ...formData, tenant_name: e.target.value })
@@ -151,10 +155,11 @@ function CreateServerModal({
           </div>
 
           <div className="form-group">
-            <label>Server Name</label>
+            <label>{t('create.serverName.label')}</label>
             <input
               type="text"
               className="input"
+              placeholder={t('create.serverName.placeholder')}
               value={formData.server_name}
               onChange={(e) =>
                 setFormData({ ...formData, server_name: e.target.value })
@@ -164,9 +169,10 @@ function CreateServerModal({
           </div>
 
           <div className="form-group">
-            <label>Description</label>
+            <label>{t('create.description.label')}</label>
             <textarea
               className="input"
+              placeholder={t('create.description.placeholder')}
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
@@ -179,14 +185,14 @@ function CreateServerModal({
 
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel
+              {t('common:button.cancel', { ns: 'common' })}
             </button>
             <button
               type="submit"
               className="btn btn-primary"
               disabled={createMutation.isPending}
             >
-              {createMutation.isPending ? 'Creating...' : 'Create'}
+              {createMutation.isPending ? t('create.button.creating') : t('create.button.create')}
             </button>
           </div>
         </form>

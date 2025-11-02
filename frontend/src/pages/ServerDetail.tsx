@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { serversAPI, toolsAPI, uipathAPI } from '@/lib/api'
 import type { MCPTool, MCPToolCreate, UiPathProcess, UiPathFolder } from '@/types'
 import './ServerDetail.css'
 
 export default function ServerDetail() {
+  const { t } = useTranslation('server')
   const { tenantName, serverName } = useParams<{
     tenantName: string
     serverName: string
@@ -29,7 +31,7 @@ export default function ServerDetail() {
   })
 
   const handleDelete = (toolName: string) => {
-    if (confirm(`Delete tool ${toolName}?`)) {
+    if (confirm(t('detail.tool.confirmDelete', { name: toolName }))) {
       deleteMutation.mutate(toolName)
     }
   }
@@ -42,15 +44,15 @@ export default function ServerDetail() {
     <div className="server-detail">
       <div className="detail-header">
         <div>
-          <Link to="/" className="back-link">← Back to Dashboard</Link>
+          <Link to="/" className="back-link">← {t('detail.backToDashboard')}</Link>
           <h1>{serverName}</h1>
           <div className="server-endpoints">
             <div className="endpoint-group">
-              <span className="endpoint-label">SSE:</span>
+              <span className="endpoint-label">{t('detail.endpoints.sse')}</span>
               <code>/mcp/{tenantName}/{serverName}/sse</code>
             </div>
             <div className="endpoint-group">
-              <span className="endpoint-label">Streamable HTTP:</span>
+              <span className="endpoint-label">{t('detail.endpoints.http')}</span>
               <code>/mcp/{tenantName}/{serverName}</code>
             </div>
           </div>
@@ -59,7 +61,7 @@ export default function ServerDetail() {
           className="btn btn-primary"
           onClick={() => setShowProcessPicker(true)}
         >
-          + Add Tool from UiPath Process
+          + {t('detail.addTool')}
         </button>
       </div>
 
@@ -67,7 +69,7 @@ export default function ServerDetail() {
 
       {!toolsData?.tools || toolsData.tools.length === 0 ? (
         <div className="empty-state">
-          <p>No tools yet. Add a tool from your UiPath processes!</p>
+          <p>{t('detail.emptyTools')}</p>
         </div>
       ) : (
         <div className="tools-list">
@@ -78,11 +80,11 @@ export default function ServerDetail() {
                 {tool.uipath_process_name && (
                   <div className="tool-badges">
                     <span className="tool-badge tool-badge-process">
-                      Process: {tool.uipath_process_name}
+                      {t('detail.tool.process', { name: tool.uipath_process_name })}
                     </span>
                     {tool.uipath_folder_path && (
                       <span className="tool-badge tool-badge-folder">
-                        Folder: {tool.uipath_folder_path}
+                        {t('detail.tool.folder', { path: tool.uipath_folder_path })}
                       </span>
                     )}
                   </div>
@@ -93,7 +95,7 @@ export default function ServerDetail() {
 
               {tool.input_schema?.properties && (
                 <div className="tool-params">
-                  <h4>Parameters:</h4>
+                  <h4>{t('detail.tool.parameters')}</h4>
                   <ul>
                     {Object.entries(tool.input_schema.properties).map(([key, value]: [string, any]) => (
                       <li key={key}>
@@ -102,7 +104,7 @@ export default function ServerDetail() {
                             <code>{key}</code>
                             <span className="param-type">{value.type}</span>
                             {tool.input_schema.required?.includes(key) && (
-                              <span className="param-required">required</span>
+                              <span className="param-required">{t('detail.tool.paramRequired')}</span>
                             )}
                           </div>
                           {value.description && (
@@ -120,13 +122,13 @@ export default function ServerDetail() {
                   className="btn btn-secondary btn-sm"
                   onClick={() => setEditingTool(tool)}
                 >
-                  Edit
+                  {t('detail.tool.edit')}
                 </button>
                 <button
                   className="btn btn-danger btn-sm"
                   onClick={() => handleDelete(tool.name)}
                 >
-                  Delete
+                  {t('detail.tool.delete')}
                 </button>
               </div>
             </div>
@@ -173,6 +175,7 @@ function UiPathProcessPicker({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation('server')
   const [selectedFolder, setSelectedFolder] = useState<any | null>(null)
   const [folderQuery, setFolderQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -205,7 +208,7 @@ function UiPathProcessPicker({
     mutationFn: (data: MCPToolCreate) => toolsAPI.create(tenantName, serverName, data),
     onSuccess,
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to create tool')
+      setError(err.response?.data?.error || t('processPicker.error.loadFailed'))
     },
   })
 
@@ -237,7 +240,7 @@ function UiPathProcessPicker({
 
   const handleCreateTool = () => {
     if (!selectedProcess || !toolName) {
-      setError('Please select a process and enter a tool name')
+      setError(t('processPicker.error.selectProcess'))
       return
     }
 
@@ -281,11 +284,11 @@ function UiPathProcessPicker({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-        <h2>Add Tool from UiPath Process</h2>
+        <h2>{t('processPicker.title')}</h2>
 
         {loadError && (
           <div className="error">
-            {(loadError as any).response?.data?.error || 'Failed to load processes. Please check your UiPath configuration in Settings.'}
+            {(loadError as any).response?.data?.error || t('processPicker.error.loadFailed')}
           </div>
         )}
 
@@ -295,13 +298,13 @@ function UiPathProcessPicker({
           <div className="process-picker">
             {!selectedFolder ? (
               <div className="folder-list">
-                <h3>Step 1: Select a Folder</h3>
+                <h3>{t('processPicker.step1')}</h3>
                 <div className="form-group" style={{ marginTop: 8 }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
                       className="input"
-                      placeholder="Search folders by name..."
+                      placeholder={t('processPicker.searchPlaceholder')}
                       value={folderQuery}
                       onChange={(e) => setFolderQuery(e.target.value)}
                       onKeyPress={(e) => {
@@ -318,7 +321,7 @@ function UiPathProcessPicker({
                       disabled={isLoading}
                       style={{ minWidth: '80px' }}
                     >
-                      {isLoading ? '...' : 'Search'}
+                      {isLoading ? '...' : t('common:button.search', { ns: 'common' })}
                     </button>
                     {searchQuery && (
                       <button
@@ -327,18 +330,18 @@ function UiPathProcessPicker({
                         onClick={handleClearSearch}
                         style={{ minWidth: '80px' }}
                       >
-                        Clear
+                        {t('common:button.clear', { ns: 'common' })}
                       </button>
                     )}
                   </div>
                 </div>
                 {!foldersData?.folders || foldersData.folders.length === 0 ? (
-                  <p className="empty-message">No folders found. Please check your UiPath configuration.</p>
+                  <p className="empty-message">{t('processPicker.noFolders')}</p>
                 ) : (
                   <div className="folders">
                     {searchQuery && foldersData?.matched && foldersData.matched.length > 0 && (
                       <>
-                        <div className="section-subtitle">Matches</div>
+                        <div className="section-subtitle">{t('processPicker.matches')}</div>
                         {foldersData.matched.map((folder: UiPathFolder) => (
                           <div
                             key={`m-${folder.id}`}
@@ -386,12 +389,12 @@ function UiPathProcessPicker({
                         setSelectedProcess(null)
                       }}
                     >
-                      ← Change Folder
+                      ← {t('processPicker.changeFolder')}
                     </button>
-                    <h3>Step 2: Select a Process from {selectedFolder.name}</h3>
+                    <h3>{t('processPicker.step2', { folder: selectedFolder.name })}</h3>
                   </div>
                   {!processesData?.processes || processesData.processes.length === 0 ? (
-                    <p className="empty-message">No processes found in this folder.</p>
+                    <p className="empty-message">{t('processPicker.noProcesses')}</p>
                   ) : (
                     <div className="processes">
                       {processesData.processes.map((process: UiPathProcess) => (
@@ -415,23 +418,23 @@ function UiPathProcessPicker({
 
             {selectedProcess && (
               <div className="process-details">
-                <h3>Tool Configuration</h3>
+                <h3>{t('processPicker.toolConfig')}</h3>
 
                 <div className="form-group">
-                  <label>Tool Name *</label>
+                  <label>{t('processPicker.toolName.label')} *</label>
                   <input
                     type="text"
                     className="input"
                     value={toolName}
                     onChange={(e) => setToolName(e.target.value)}
-                    placeholder="tool_name"
+                    placeholder={t('processPicker.toolName.placeholder')}
                     required
                   />
-                  <small>Use lowercase letters, numbers, and underscores only</small>
+                  <small>{t('processPicker.toolName.help')}</small>
                 </div>
 
                 <div className="form-group">
-                  <label>UiPath Process</label>
+                  <label>{t('processPicker.processName')}</label>
                   <input
                     type="text"
                     className="input"
@@ -441,31 +444,31 @@ function UiPathProcessPicker({
                 </div>
 
                 <div className="form-group">
-                  <label>Process Key</label>
+                  <label>{t('processPicker.processKey.label')}</label>
                   <input
                     type="text"
                     className="input"
                     value={selectedProcess.key || selectedProcess.name || 'N/A'}
                     disabled
                   />
-                  <small>Unique identifier for the process</small>
+                  <small>{t('processPicker.processKey.help')}</small>
                 </div>
 
                 <div className="form-group">
-                  <label>Tool Description *</label>
+                  <label>{t('processPicker.description.label')} *</label>
                   <textarea
                     className="input"
                     value={toolDescription}
                     onChange={(e) => setToolDescription(e.target.value)}
                     rows={2}
-                    placeholder="Describe what this tool does..."
+                    placeholder={t('processPicker.description.placeholder')}
                     required
                   />
                 </div>
 
                 {parameters.length > 0 && (
                   <div className="form-group">
-                    <label>Input Parameters ({parameters.length})</label>
+                    <label>{t('processPicker.parameters', { count: parameters.length })}</label>
                     <div className="params-editor">
                       {parameters.map((param, index) => (
                         <div key={param.name} className="param-editor-item">
@@ -481,7 +484,7 @@ function UiPathProcessPicker({
                                     handleParameterChange(index, 'required', e.target.checked)
                                   }
                                 />
-                                Required
+                                {t('processPicker.paramRequired')}
                               </label>
                             </div>
                           </div>
@@ -493,7 +496,7 @@ function UiPathProcessPicker({
                               onChange={(e) =>
                                 handleParameterChange(index, 'description', e.target.value)
                               }
-                              placeholder="Parameter description..."
+                              placeholder={t('processPicker.paramDescription')}
                             />
                           </div>
                         </div>
@@ -510,7 +513,7 @@ function UiPathProcessPicker({
                     className="btn btn-secondary"
                     onClick={onClose}
                   >
-                    Cancel
+                    {t('common:button.cancel', { ns: 'common' })}
                   </button>
                   <button
                     type="button"
@@ -518,7 +521,7 @@ function UiPathProcessPicker({
                     onClick={handleCreateTool}
                     disabled={createMutation.isPending || !toolName || !toolDescription}
                   >
-                    {createMutation.isPending ? 'Creating...' : 'Create Tool'}
+                    {createMutation.isPending ? t('processPicker.button.creating') : t('processPicker.button.create')}
                   </button>
                 </div>
               </div>
@@ -544,6 +547,7 @@ function ToolEditor({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation('server')
   const [toolDescription, setToolDescription] = useState(tool.description || '')
   const [parameters, setParameters] = useState<Array<{
     name: string
@@ -571,7 +575,7 @@ function ToolEditor({
       toolsAPI.update(tenantName, serverName, tool.name, data),
     onSuccess,
     onError: (err: any) => {
-      setError(err.response?.data?.error || 'Failed to update tool')
+      setError(err.response?.data?.error || t('toolEditor.error.descriptionRequired'))
     },
   })
 
@@ -583,7 +587,7 @@ function ToolEditor({
 
   const handleUpdate = () => {
     if (!toolDescription) {
-      setError('Please enter a tool description')
+      setError(t('toolEditor.error.descriptionRequired'))
       return
     }
 
@@ -616,24 +620,24 @@ function ToolEditor({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-        <h2>Edit Tool: {tool.name}</h2>
+        <h2>{t('toolEditor.title', { name: tool.name })}</h2>
 
         <div className="tool-editor">
           <div className="form-group">
-            <label>Tool Name</label>
+            <label>{t('toolEditor.toolName.label')}</label>
             <input
               type="text"
               className="input"
               value={tool.name}
               disabled
             />
-            <small>Tool name cannot be changed</small>
+            <small>{t('toolEditor.toolName.help')}</small>
           </div>
 
           {tool.uipath_process_name && (
             <>
               <div className="form-group">
-                <label>UiPath Process</label>
+                <label>{t('toolEditor.process')}</label>
                 <input
                   type="text"
                   className="input"
@@ -644,7 +648,7 @@ function ToolEditor({
 
               {tool.uipath_process_key && (
                 <div className="form-group">
-                  <label>Process Key</label>
+                  <label>{t('toolEditor.processKey')}</label>
                   <input
                     type="text"
                     className="input"
@@ -656,7 +660,7 @@ function ToolEditor({
 
               {tool.uipath_folder_path && (
                 <div className="form-group">
-                  <label>UiPath Folder</label>
+                  <label>{t('toolEditor.folder')}</label>
                   <input
                     type="text"
                     className="input"
@@ -669,20 +673,20 @@ function ToolEditor({
           )}
 
           <div className="form-group">
-            <label>Tool Description *</label>
+            <label>{t('toolEditor.description.label')} *</label>
             <textarea
               className="input"
               value={toolDescription}
               onChange={(e) => setToolDescription(e.target.value)}
               rows={3}
-              placeholder="Describe what this tool does..."
+              placeholder={t('toolEditor.description.placeholder')}
               required
             />
           </div>
 
           {parameters.length > 0 && (
             <div className="form-group">
-              <label>Input Parameters ({parameters.length})</label>
+              <label>{t('toolEditor.parameters', { count: parameters.length })}</label>
               <div className="params-editor">
                 {parameters.map((param: any, index: number) => (
                   <div key={param.name} className="param-editor-item">
@@ -698,7 +702,7 @@ function ToolEditor({
                               handleParameterChange(index, 'required', e.target.checked)
                             }
                           />
-                          Required
+                          {t('processPicker.paramRequired')}
                         </label>
                       </div>
                     </div>
@@ -710,7 +714,7 @@ function ToolEditor({
                         onChange={(e) =>
                           handleParameterChange(index, 'description', e.target.value)
                         }
-                        placeholder="Parameter description..."
+                        placeholder={t('processPicker.paramDescription')}
                       />
                     </div>
                   </div>
@@ -727,7 +731,7 @@ function ToolEditor({
               className="btn btn-secondary"
               onClick={onClose}
             >
-              Cancel
+              {t('common:button.cancel', { ns: 'common' })}
             </button>
             <button
               type="button"
@@ -735,7 +739,7 @@ function ToolEditor({
               onClick={handleUpdate}
               disabled={updateMutation.isPending || !toolDescription}
             >
-              {updateMutation.isPending ? 'Updating...' : 'Update Tool'}
+              {updateMutation.isPending ? t('toolEditor.button.updating') : t('toolEditor.button.update')}
             </button>
           </div>
         </div>
@@ -752,6 +756,7 @@ function TokenManager({
   tenantName: string
   serverName: string
 }) {
+  const { t } = useTranslation('server')
   const [token, setToken] = useState<string | null>(null)
   const [showToken, setShowToken] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -796,11 +801,7 @@ function TokenManager({
 
   const handleGenerate = () => {
     if (token) {
-      if (
-        confirm(
-          'Generating a new token will invalidate the existing token. Continue?'
-        )
-      ) {
+      if (confirm(t('token.confirmRegenerate'))) {
         generateMutation.mutate()
       }
     } else {
@@ -809,7 +810,7 @@ function TokenManager({
   }
 
   const handleRevoke = () => {
-    if (confirm('Are you sure you want to revoke this token? This cannot be undone.')) {
+    if (confirm(t('token.confirmRevoke'))) {
       revokeMutation.mutate()
     }
   }
@@ -821,9 +822,9 @@ function TokenManager({
   return (
     <div className="token-manager">
       <div className="token-header">
-        <h3>API Token</h3>
+        <h3>{t('token.title')}</h3>
         <p className="token-description">
-          Use this token to connect external MCP clients to this server
+          {t('token.description')}
         </p>
       </div>
 
@@ -840,14 +841,14 @@ function TokenManager({
               className="btn btn-secondary btn-sm"
               onClick={() => setShowToken(!showToken)}
             >
-              {showToken ? '👁️ Hide' : '👁️ Show'}
+              {showToken ? `👁️ ${t('token.hide')}` : `👁️ ${t('token.show')}`}
             </button>
             <button
               className="btn btn-primary btn-sm"
               onClick={handleCopy}
               disabled={!showToken}
             >
-              {copied ? '✓ Copied!' : '📋 Copy'}
+              {copied ? `✓ ${t('token.copied')}` : `📋 ${t('token.copy')}`}
             </button>
           </div>
 
@@ -857,35 +858,35 @@ function TokenManager({
               onClick={handleGenerate}
               disabled={generateMutation.isPending}
             >
-              {generateMutation.isPending ? 'Generating...' : '🔄 Regenerate'}
+              {generateMutation.isPending ? t('token.generating') : `🔄 ${t('token.regenerate')}`}
             </button>
             <button
               className="btn btn-danger btn-sm"
               onClick={handleRevoke}
               disabled={revokeMutation.isPending}
             >
-              {revokeMutation.isPending ? 'Revoking...' : '🗑️ Revoke'}
+              {revokeMutation.isPending ? t('token.revoking') : `🗑️ ${t('token.revoke')}`}
             </button>
           </div>
 
           <div className="token-usage">
-            <h4>How to use:</h4>
+            <h4>{t('token.usage.title')}</h4>
             <div className="usage-example">
-              <p>SSE Connection (Server-Sent Events)</p>
+              <p>{t('token.usage.sse')}</p>
               <code>
                 curl -N -H "Authorization: Bearer {token.substring(0, 20)}..." <br />
                 http://localhost:8000/mcp/{tenantName}/{serverName}/sse
               </code>
             </div>
             <div className="usage-example">
-              <p>Streamable HTTP Connection</p>
+              <p>{t('token.usage.http')}</p>
               <code>
                 curl -N -H "Authorization: Bearer {token.substring(0, 20)}..." <br />
                 http://localhost:8000/mcp/{tenantName}/{serverName}
               </code>
             </div>
             <div className="usage-example">
-              <p>With Query Parameter (Alternative)</p>
+              <p>{t('token.usage.query')}</p>
               <code>
                 curl -N http://localhost:8000/mcp/{tenantName}/{serverName}?token=
                 {token.substring(0, 20)}...
@@ -895,13 +896,13 @@ function TokenManager({
         </div>
       ) : (
         <div className="token-empty">
-          <p>No API token generated yet</p>
+          <p>{t('token.noToken')}</p>
           <button
             className="btn btn-primary"
             onClick={handleGenerate}
             disabled={generateMutation.isPending}
           >
-            {generateMutation.isPending ? 'Generating...' : '🔑 Generate Token'}
+            {generateMutation.isPending ? t('token.generating') : `🔑 ${t('token.generate')}`}
           </button>
         </div>
       )}

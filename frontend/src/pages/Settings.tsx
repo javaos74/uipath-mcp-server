@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { UiPathConfig } from '@/types'
@@ -8,6 +9,7 @@ import './Settings.css'
 type AuthType = 'pat' | 'oauth'
 
 export default function Settings() {
+  const { t } = useTranslation('settings')
   const { user, updateUser } = useAuthStore()
   const [authType, setAuthType] = useState<AuthType>(user?.uipath_auth_type || 'pat')
   const [formData, setFormData] = useState<UiPathConfig>({
@@ -39,13 +41,13 @@ export default function Settings() {
           setError('')
         }
       } else if (authType === 'oauth' && !data?.has_uipath_token) {
-        setError('OAuth credentials saved, but token generation failed. Please check your credentials and UiPath URL.')
+        setError(t('uipath.message.oauthFailed'))
         setSuccess('')
       } else if (data?.has_uipath_token || authType === 'pat') {
-        setSuccess('UiPath configuration updated successfully')
+        setSuccess(t('uipath.message.success'))
         setError('')
       } else {
-        setSuccess('Configuration saved')
+        setSuccess(t('uipath.message.saved'))
         setError('')
       }
       // Clear sensitive fields after successful update
@@ -97,54 +99,54 @@ export default function Settings() {
 
   return (
     <div className="settings">
-      <h1>Settings</h1>
+      <h1>{t('title')}</h1>
 
       <div className="settings-section">
-        <h2>User Information</h2>
+        <h2>{t('userInfo.title')}</h2>
         <div className="info-grid">
           <div className="info-item">
-            <label>Username</label>
+            <label>{t('userInfo.username')}</label>
             <div>{user?.username}</div>
           </div>
           <div className="info-item">
-            <label>Email</label>
+            <label>{t('userInfo.email')}</label>
             <div>{user?.email}</div>
           </div>
           <div className="info-item">
-            <label>Role</label>
+            <label>{t('userInfo.role')}</label>
             <div className="user-role">{user?.role}</div>
           </div>
         </div>
       </div>
 
       <div className="settings-section">
-        <h2>UiPath Configuration</h2>
+        <h2>{t('uipath.title')}</h2>
         <p className="section-description">
-          Configure your UiPath credentials. These will be used when executing RPA processes.
+          {t('uipath.description')}
         </p>
 
         <form onSubmit={handleSubmit} className="settings-form">
           <div className="form-group">
-            <label htmlFor="uipath_url">UiPath Cloud/Automation Suite URL</label>
+            <label htmlFor="uipath_url">{t('uipath.url.label')}</label>
             <input
               id="uipath_url"
               type="text"
               className="input"
-              placeholder="https://cloud.uipath.com/org_name/tenant_name"
+              placeholder={t('uipath.url.placeholder')}
               value={formData.uipath_url}
               onChange={(e) =>
                 setFormData({ ...formData, uipath_url: e.target.value })
               }
             />
             <small className="form-help">
-              <strong>URL Format:</strong><br />
-              • <strong>MSI (On-Premise):</strong> https://{'<domain_name>'}<br />
-              • <strong>Automation Suite:</strong> https://{'<domain_name>/<org_name>/<tenant_name>'}
+              <strong>{t('uipath.url.help.title')}</strong><br />
+              • <strong>{t('uipath.url.help.msi')}</strong><br />
+              • <strong>{t('uipath.url.help.suite')}</strong>
             </small>
           </div>
 
           <div className="form-group">
-            <label>Authentication Type</label>
+            <label>{t('uipath.authType.label')}</label>
             <div className="radio-group">
               <label className="radio-label">
                 <input
@@ -154,7 +156,7 @@ export default function Settings() {
                   checked={authType === 'pat'}
                   onChange={(e) => setAuthType(e.target.value as AuthType)}
                 />
-                <span>Personal Access Token (PAT)</span>
+                <span>{t('uipath.authType.pat')}</span>
               </label>
               <label className="radio-label">
                 <input
@@ -164,22 +166,22 @@ export default function Settings() {
                   checked={authType === 'oauth'}
                   onChange={(e) => setAuthType(e.target.value as AuthType)}
                 />
-                <span>OAuth 2.0 (Client Credentials)</span>
+                <span>{t('uipath.authType.oauth')}</span>
               </label>
             </div>
           </div>
 
           {authType === 'pat' ? (
             <div className="form-group">
-              <label htmlFor="uipath_access_token">UiPath Personal Access Token (PAT)</label>
+              <label htmlFor="uipath_access_token">{t('uipath.pat.label')}</label>
               <input
                 id="uipath_access_token"
                 type="password"
                 className="input"
                 placeholder={
                   user?.has_uipath_token
-                    ? '••••••••••••••••'
-                    : 'No PAT found - Enter your UiPath PAT'
+                    ? t('uipath.pat.placeholderExists')
+                    : t('uipath.pat.placeholder')
                 }
                 value={formData.uipath_access_token}
                 onChange={(e) =>
@@ -188,14 +190,14 @@ export default function Settings() {
               />
               <small className="form-help">
                 {user?.has_uipath_token
-                  ? 'Current: ••••••••••••••••  (stored securely)'
-                  : 'No PAT configured. Your PAT will be stored securely.'}
+                  ? t('uipath.pat.helpExists')
+                  : t('uipath.pat.help')}
               </small>
             </div>
           ) : (
             <>
               <div className="form-group">
-                <label htmlFor="client_id">OAuth Client ID</label>
+                <label htmlFor="client_id">{t('uipath.oauth.clientId.label')}</label>
                 <input
                   id="client_id"
                   type="text"
@@ -203,7 +205,7 @@ export default function Settings() {
                   placeholder={
                     user?.uipath_client_id
                       ? user.uipath_client_id
-                      : 'Enter your OAuth Client ID'
+                      : t('uipath.oauth.clientId.placeholder')
                   }
                   value={oauthData.client_id}
                   onChange={(e) =>
@@ -212,21 +214,21 @@ export default function Settings() {
                 />
                 <small className="form-help">
                   {user?.uipath_client_id
-                    ? `Current: ${user.uipath_client_id}`
-                    : 'The Client ID from your UiPath OAuth application'}
+                    ? t('uipath.oauth.clientId.helpExists', { clientId: user.uipath_client_id })
+                    : t('uipath.oauth.clientId.help')}
                 </small>
               </div>
 
               <div className="form-group">
-                <label htmlFor="client_secret">OAuth Client Secret</label>
+                <label htmlFor="client_secret">{t('uipath.oauth.clientSecret.label')}</label>
                 <input
                   id="client_secret"
                   type="password"
                   className="input"
                   placeholder={
                     user?.has_oauth_credentials
-                      ? '••••••••••••••••'
-                      : 'Enter your OAuth Client Secret'
+                      ? t('uipath.oauth.clientSecret.placeholderExists')
+                      : t('uipath.oauth.clientSecret.placeholder')
                   }
                   value={oauthData.client_secret}
                   onChange={(e) =>
@@ -235,8 +237,8 @@ export default function Settings() {
                 />
                 <small className="form-help">
                   {user?.has_oauth_credentials
-                    ? 'Current: ••••••••••••••••  (stored securely)'
-                    : 'The Client Secret will be stored securely and used to obtain access tokens'}
+                    ? t('uipath.oauth.clientSecret.helpExists')
+                    : t('uipath.oauth.clientSecret.help')}
                 </small>
               </div>
             </>
@@ -250,7 +252,7 @@ export default function Settings() {
             className="btn btn-primary"
             disabled={updateMutation.isPending}
           >
-            {updateMutation.isPending ? 'Saving...' : 'Save Configuration'}
+            {updateMutation.isPending ? t('uipath.button.saving') : t('uipath.button.save')}
           </button>
         </form>
       </div>

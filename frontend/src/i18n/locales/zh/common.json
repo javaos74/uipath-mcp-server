@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "UiPath MCP 服务器",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功"
+  },
+  "nav": {
+    "dashboard": "仪表板",
+    "settings": "设置"
+  },
+  "button": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "back": "返回",
+    "close": "关闭",
+    "confirm": "确认",
+    "search": "搜索",
+    "clear": "清除",
+    "add": "添加",
+    "update": "更新",
+    "generate": "生成",
+    "regenerate": "重新生成",
+    "revoke": "撤销",
+    "copy": "复制",
+    "show": "显示",
+    "hide": "隐藏"
+  },
+  "status": {
+    "active": "活动",
+    "inactive": "非活动",
+    "pending": "待处理",
+    "completed": "已完成",
+    "failed": "失败"
+  },
+  "message": {
+    "confirmDelete": "确定要删除吗？",
+    "saved": "保存成功",
+    "deleted": "删除成功",
+    "updated": "更新成功",
+    "created": "创建成功",
+    "copied": "已复制到剪贴板"
+  }
+}

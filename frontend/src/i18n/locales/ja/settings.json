@@ -1,0 +1,58 @@
+{
+  "title": "設定",
+  "userInfo": {
+    "title": "ユーザー情報",
+    "username": "ユーザー名",
+    "email": "メールアドレス",
+    "role": "役割"
+  },
+  "uipath": {
+    "title": "UiPath 設定",
+    "description": "UiPath の認証情報を設定します。これらは RPA プロセスの実行時に使用されます。",
+    "url": {
+      "label": "UiPath Cloud/Automation Suite URL",
+      "placeholder": "https://cloud.uipath.com/org_name/tenant_name",
+      "help": {
+        "title": "URL 形式：",
+        "msi": "MSI（オンプレミス）：https://<ドメイン名>",
+        "suite": "Automation Suite：https://<ドメイン名>/<組織名>/<テナント名>"
+      }
+    },
+    "authType": {
+      "label": "認証タイプ",
+      "pat": "個人アクセストークン（PAT）",
+      "oauth": "OAuth 2.0（クライアント資格情報）"
+    },
+    "pat": {
+      "label": "UiPath 個人アクセストークン（PAT）",
+      "placeholder": "PAT が見つかりません - UiPath PAT を入力してください",
+      "placeholderExists": "••••••••••••••••",
+      "help": "PAT は安全に保存されます。",
+      "helpExists": "現在：••••••••••••••••（安全に保存されています）"
+    },
+    "oauth": {
+      "clientId": {
+        "label": "OAuth クライアント ID",
+        "placeholder": "OAuth クライアント ID を入力してください",
+        "help": "UiPath OAuth アプリケーションのクライアント ID",
+        "helpExists": "現在：{{clientId}}"
+      },
+      "clientSecret": {
+        "label": "OAuth クライアントシークレット",
+        "placeholder": "OAuth クライアントシークレットを入力してください",
+        "placeholderExists": "••••••••••••••••",
+        "help": "クライアントシークレットは安全に保存され、アクセストークンの取得に使用されます",
+        "helpExists": "現在：••••••••••••••••（安全に保存されています）"
+      }
+    },
+    "button": {
+      "save": "設定を保存",
+      "saving": "保存中..."
+    },
+    "message": {
+      "success": "UiPath 設定が正常に更新されました",
+      "oauthFailed": "OAuth 資格情報は保存されましたが、トークンの生成に失敗しました。資格情報と UiPath URL を確認してください。",
+      "saved": "設定が保存されました"
+    }
+  }
+}

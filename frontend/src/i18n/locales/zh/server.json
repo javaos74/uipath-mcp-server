@@ -1,0 +1,132 @@
+{
+  "dashboard": {
+    "title": "MCP 服务器",
+    "createButton": "创建新服务器",
+    "empty": "还没有服务器。创建您的第一个 MCP 服务器！",
+    "card": {
+      "tools": "{{count}} 个工具",
+      "tools_plural": "{{count}} 个工具"
+    }
+  },
+  "detail": {
+    "backToDashboard": "返回仪表板",
+    "endpoints": {
+      "sse": "SSE：",
+      "http": "Streamable HTTP："
+    },
+    "addTool": "从 UiPath 流程添加工具",
+    "emptyTools": "还没有工具。从您的 UiPath 流程添加工具！",
+    "tool": {
+      "process": "流程：{{name}}",
+      "folder": "文件夹：{{path}}",
+      "parameters": "参数：",
+      "paramRequired": "必填",
+      "edit": "编辑",
+      "delete": "删除",
+      "confirmDelete": "删除工具 {{name}}？"
+    }
+  },
+  "token": {
+    "title": "API 令牌",
+    "description": "使用此令牌将外部 MCP 客户端连接到此服务器",
+    "show": "显示",
+    "hide": "隐藏",
+    "copy": "复制",
+    "copied": "已复制！",
+    "generate": "生成令牌",
+    "regenerate": "重新生成",
+    "revoke": "撤销",
+    "generating": "生成中...",
+    "revoking": "撤销中...",
+    "confirmRegenerate": "生成新令牌将使现有令牌失效。继续？",
+    "confirmRevoke": "确定要撤销此令牌吗？此操作无法撤消。",
+    "noToken": "尚未生成 API 令牌",
+    "usage": {
+      "title": "使用方法：",
+      "sse": "SSE 连接（服务器发送事件）",
+      "http": "Streamable HTTP 连接",
+      "query": "使用查询参数（替代方法）"
+    }
+  },
+  "create": {
+    "title": "创建新服务器",
+    "tenantName": {
+      "label": "租户名称",
+      "placeholder": "my-tenant"
+    },
+    "serverName": {
+      "label": "服务器名称",
+      "placeholder": "my-server"
+    },
+    "description": {
+      "label": "描述（可选）",
+      "placeholder": "描述您的 MCP 服务器..."
+    },
+    "button": {
+      "create": "创建服务器",
+      "creating": "创建中..."
+    },
+    "error": {
+      "exists": "服务器 '{{tenant}}/{{server}}' 已存在"
+    }
+  },
+  "processPicker": {
+    "title": "从 UiPath 流程添加工具",
+    "step1": "步骤 1：选择文件夹",
+    "step2": "步骤 2：从 {{folder}} 选择流程",
+    "changeFolder": "更改文件夹",
+    "searchPlaceholder": "按名称搜索文件夹...",
+    "noFolders": "未找到文件夹。请检查您的 UiPath 配置。",
+    "noProcesses": "此文件夹中没有流程。",
+    "matches": "匹配项",
+    "allFolders": "所有文件夹",
+    "toolConfig": "工具配置",
+    "toolName": {
+      "label": "工具名称",
+      "placeholder": "tool_name",
+      "help": "仅使用小写字母、数字和下划线"
+    },
+    "processName": "UiPath 流程",
+    "processKey": {
+      "label": "流程密钥",
+      "help": "流程的唯一标识符"
+    },
+    "description": {
+      "label": "工具描述",
+      "placeholder": "描述此工具的功能..."
+    },
+    "parameters": "输入参数（{{count}} 个）",
+    "paramRequired": "必填",
+    "paramDescription": "参数描述...",
+    "button": {
+      "create": "创建工具",
+      "creating": "创建中..."
+    },
+    "error": {
+      "loadFailed": "加载流程失败。请在设置中检查您的 UiPath 配置。",
+      "selectProcess": "请选择流程并输入工具名称"
+    }
+  },
+  "toolEditor": {
+    "title": "编辑工具：{{name}}",
+    "toolName": {
+      "label": "工具名称",
+      "help": "工具名称无法更改"
+    },
+    "process": "UiPath 流程",
+    "processKey": "流程密钥",
+    "folder": "UiPath 文件夹",
+    "description": {
+      "label": "工具描述",
+      "placeholder": "描述此工具的功能..."
+    },
+    "parameters": "输入参数（{{count}} 个）",
+    "button": {
+      "update": "更新工具",
+      "updating": "更新中..."
+    },
+    "error": {
+      "descriptionRequired": "请输入工具描述"
+    }
+  }
+}
