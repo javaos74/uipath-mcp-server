@@ -274,19 +274,32 @@ class UiPathClient:
             raise Exception(f"Failed to start job: {str(e)}")
 
     async def _get_release_key(
-        self, process_name: str, folder_id: Optional[str], base_url: str, token: str
+        self, process_identifier: str, folder_id: Optional[str], base_url: str, token: str
     ) -> Optional[str]:
         """Get release key for a process.
 
         Args:
-            process_name: Process name
+            process_identifier: Either Release Key (GUID) or ProcessKey
             folder_id: Folder ID
             base_url: UiPath base URL
             token: Access token
 
         Returns:
-            Release key or None if not found
+            Release key (GUID) or None if not found
         """
+        # Check if the identifier is already a GUID (Release Key)
+        # GUIDs are typically 32 hex chars with hyphens: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        import re
+        guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+        
+        if guid_pattern.match(process_identifier):
+            # Already a Release Key (GUID), return as-is
+            logger.info(f"Process identifier is already a Release Key (GUID): {process_identifier}")
+            return process_identifier
+        
+        # Not a GUID, treat as ProcessKey and query for Release
+        logger.info(f"Process identifier is ProcessKey, querying for Release: {process_identifier}")
+        
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -295,14 +308,14 @@ class UiPathClient:
         if folder_id:
             headers["X-UIPATH-OrganizationUnitId"] = str(folder_id)
 
-        # Query releases by process name
+        # Query releases by ProcessKey
         parsed = urlparse(base_url)
         if len(parsed.path) <= 1:
             api_url = (
-                f"{base_url}/odata/Releases?$filter=ProcessKey eq '{process_name}'"
+                f"{base_url}/odata/Releases?$filter=ProcessKey eq '{process_identifier}'"
             )
         else:
-            api_url = f"{base_url}/orchestrator_/odata/Releases?$filter=ProcessKey eq '{process_name}'"
+            api_url = f"{base_url}/orchestrator_/odata/Releases?$filter=ProcessKey eq '{process_identifier}'"
         logger.info(f"Querying releases: {api_url}")
 
         try:
@@ -318,7 +331,7 @@ class UiPathClient:
                 logger.info(f"Found release key: {release_key}")
                 return release_key
 
-            logger.warning(f"No release found for process: {process_name}")
+            logger.warning(f"No release found for ProcessKey: {process_identifier}")
             return None
 
         except Exception as e:
@@ -564,7 +577,7 @@ class UiPathClient:
             logger.info(f"Found {len(releases)} releases in folder {folder_id}")
 
             result = []
-            seen_names= set()  # To avoid duplicates
+            seen_names = set()  # To avoid duplicates
 
             for release in releases:
                 # Get unique process key
@@ -576,7 +589,9 @@ class UiPathClient:
 
                 # Use Release Key (GUID) as the unique identifier, not ProcessKey
                 process_key = release.get("Key") or release.get("ProcessKey")
-                logger.info(f"Process: {process_name}, Key: {release.get('Key')}, ProcessKey: {release.get('ProcessKey')}")
+                logger.info(
+                    f"Process: {process_name}, Key: {release.get('Key')}, ProcessKey: {release.get('ProcessKey')}"
+                )
 
                 # Extract input parameters from arguments
                 input_params = []
