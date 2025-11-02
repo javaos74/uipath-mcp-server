@@ -274,7 +274,11 @@ class UiPathClient:
             raise Exception(f"Failed to start job: {str(e)}")
 
     async def _get_release_key(
-        self, process_identifier: str, folder_id: Optional[str], base_url: str, token: str
+        self,
+        process_identifier: str,
+        folder_id: Optional[str],
+        base_url: str,
+        token: str,
     ) -> Optional[str]:
         """Get release key for a process.
 
@@ -290,16 +294,24 @@ class UiPathClient:
         # Check if the identifier is already a GUID (Release Key)
         # GUIDs are typically 32 hex chars with hyphens: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
         import re
-        guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
-        
+
+        guid_pattern = re.compile(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            re.IGNORECASE,
+        )
+
         if guid_pattern.match(process_identifier):
             # Already a Release Key (GUID), return as-is
-            logger.info(f"Process identifier is already a Release Key (GUID): {process_identifier}")
+            logger.info(
+                f"Process identifier is already a Release Key (GUID): {process_identifier}"
+            )
             return process_identifier
-        
+
         # Not a GUID, treat as ProcessKey and query for Release
-        logger.info(f"Process identifier is ProcessKey, querying for Release: {process_identifier}")
-        
+        logger.info(
+            f"Process identifier is ProcessKey, querying for Release: {process_identifier}"
+        )
+
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -311,9 +323,7 @@ class UiPathClient:
         # Query releases by ProcessKey
         parsed = urlparse(base_url)
         if len(parsed.path) <= 1:
-            api_url = (
-                f"{base_url}/odata/Releases?$filter=ProcessKey eq '{process_identifier}'"
-            )
+            api_url = f"{base_url}/odata/Releases?$filter=ProcessKey eq '{process_identifier}'"
         else:
             api_url = f"{base_url}/orchestrator_/odata/Releases?$filter=ProcessKey eq '{process_identifier}'"
         logger.info(f"Querying releases: {api_url}")
