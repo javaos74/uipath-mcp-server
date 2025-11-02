@@ -14,6 +14,7 @@ import anyio
 import asyncio
 from pathlib import Path
 from datetime import timedelta
+from typing import Optional
 
 from .mcp_server import DynamicMCPServer
 from .database import Database
@@ -69,6 +70,7 @@ streamable_tasks = {}
 sse_init_started = {}
 streamable_init_started = {}
 streamable_started_at = {}
+
 
 def _mask_authorization(headers: dict) -> dict:
     try:
@@ -149,7 +151,8 @@ async def register(request):
         user_data = {
             k: v
             for k, v in user.items()
-            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+            if k
+            not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
         }
         user_data["has_uipath_token"] = False  # New user has no token
         user_data["has_oauth_credentials"] = False  # New user has no OAuth
@@ -201,7 +204,8 @@ async def login(request):
         user_data = {
             k: v
             for k, v in user.items()
-            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+            if k
+            not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
         }
         user_data["has_uipath_token"] = bool(user.get("uipath_access_token"))
         user_data["has_oauth_credentials"] = bool(
@@ -249,10 +253,12 @@ async def update_uipath_config(request):
         data = await request.json()
         logger.info(f"Received UiPath config update: {data}")
         config = UiPathConfigUpdate(**data)
-        
-        logger.info(f"Parsed config - auth_type: {config.uipath_auth_type}, "
-                   f"client_id: {config.uipath_client_id}, "
-                   f"has_client_secret: {bool(config.uipath_client_secret)}")
+
+        logger.info(
+            f"Parsed config - auth_type: {config.uipath_auth_type}, "
+            f"client_id: {config.uipath_client_id}, "
+            f"has_client_secret: {bool(config.uipath_client_secret)}"
+        )
 
         # First persist any provided fields
         await db.update_user_uipath_config(
@@ -267,22 +273,20 @@ async def update_uipath_config(request):
         # If switching to OAuth and we have credentials, exchange for access token
         oauth_error_message = None
         try:
-            if (
-                (config.uipath_auth_type == "oauth")
-                or (
-                    not config.uipath_auth_type
-                    and user.uipath_auth_type == "oauth"
-                )
+            if (config.uipath_auth_type == "oauth") or (
+                not config.uipath_auth_type and user.uipath_auth_type == "oauth"
             ):
                 # Fetch fresh user data to ensure we have stored values
                 current = await db.get_user_by_id(user.id)
                 uipath_url = config.uipath_url or current.get("uipath_url")
                 client_id = config.uipath_client_id or current.get("uipath_client_id")
-                client_secret = (
-                    config.uipath_client_secret or current.get("uipath_client_secret")
+                client_secret = config.uipath_client_secret or current.get(
+                    "uipath_client_secret"
                 )
 
-                logger.info(f"OAuth token exchange attempt - URL: {uipath_url}, Client ID: {client_id}, Has Secret: {bool(client_secret)}")
+                logger.info(
+                    f"OAuth token exchange attempt - URL: {uipath_url}, Client ID: {client_id}, Has Secret: {bool(client_secret)}"
+                )
 
                 if uipath_url and client_id and client_secret:
                     try:
@@ -297,20 +301,35 @@ async def update_uipath_config(request):
                                 user_id=user.id,
                                 uipath_access_token=access_token,
                             )
-                            logger.info("Successfully stored OAuth access token for user")
+                            logger.info(
+                                "Successfully stored OAuth access token for user"
+                            )
                         else:
-                            oauth_error_message = "Token response did not contain access_token"
-                            logger.error(f"OAuth token exchange failed: {oauth_error_message}")
+                            oauth_error_message = (
+                                "Token response did not contain access_token"
+                            )
+                            logger.error(
+                                f"OAuth token exchange failed: {oauth_error_message}"
+                            )
                     except Exception as token_error:
                         oauth_error_message = str(token_error)
-                        logger.error(f"OAuth token exchange failed: {oauth_error_message}")
+                        logger.error(
+                            f"OAuth token exchange failed: {oauth_error_message}"
+                        )
                 else:
                     missing_fields = []
-                    if not uipath_url: missing_fields.append("URL")
-                    if not client_id: missing_fields.append("Client ID")
-                    if not client_secret: missing_fields.append("Client Secret")
-                    oauth_error_message = f"Missing required fields: {', '.join(missing_fields)}"
-                    logger.info(f"OAuth selected but missing fields; skipping token exchange: {oauth_error_message}")
+                    if not uipath_url:
+                        missing_fields.append("URL")
+                    if not client_id:
+                        missing_fields.append("Client ID")
+                    if not client_secret:
+                        missing_fields.append("Client Secret")
+                    oauth_error_message = (
+                        f"Missing required fields: {', '.join(missing_fields)}"
+                    )
+                    logger.info(
+                        f"OAuth selected but missing fields; skipping token exchange: {oauth_error_message}"
+                    )
         except Exception as e:
             # Don't fail the save entirely; report error in response below
             oauth_error_message = str(e)
@@ -321,19 +340,20 @@ async def update_uipath_config(request):
         user_data = {
             k: v
             for k, v in updated_user.items()
-            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+            if k
+            not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
         }
         user_data["has_uipath_token"] = bool(updated_user.get("uipath_access_token"))
         user_data["has_oauth_credentials"] = bool(
-            updated_user.get("uipath_client_id") and updated_user.get("uipath_client_secret")
+            updated_user.get("uipath_client_id")
+            and updated_user.get("uipath_client_secret")
         )
         user_response = UserResponse(**user_data)
 
         resp = user_response.model_dump()
         # If the token is missing after an OAuth attempt, include a detailed hint
-        if (
-            (config.uipath_auth_type == "oauth")
-            and not updated_user.get("uipath_access_token")
+        if (config.uipath_auth_type == "oauth") and not updated_user.get(
+            "uipath_access_token"
         ):
             # Emit an error log to aid debugging when token wasn't minted
             logger.error(
@@ -344,7 +364,9 @@ async def update_uipath_config(request):
                 bool(updated_user.get("uipath_client_secret")),
             )
             if oauth_error_message:
-                resp["message"] = f"OAuth credentials saved but token exchange failed: {oauth_error_message}"
+                resp["message"] = (
+                    f"OAuth credentials saved but token exchange failed: {oauth_error_message}"
+                )
             else:
                 resp["message"] = (
                     "OAuth credentials saved. Token exchange did not complete; "
@@ -357,41 +379,45 @@ async def update_uipath_config(request):
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
-async def _refresh_oauth_token_if_needed(user_id: int, error_message: str) -> Optional[str]:
+async def _refresh_oauth_token_if_needed(
+    user_id: int, error_message: str
+) -> Optional[str]:
     """Refresh OAuth token if 401 error detected.
-    
+
     Args:
         user_id: User ID
         error_message: Error message from API call
-        
+
     Returns:
         New access token if refreshed, None otherwise
     """
     # Check if error is 401 Unauthorized
     if "401" not in error_message and "Unauthorized" not in error_message:
         return None
-        
-    logger.info(f"Detected 401 error, attempting to refresh OAuth token for user {user_id}")
-    
+
+    logger.info(
+        f"Detected 401 error, attempting to refresh OAuth token for user {user_id}"
+    )
+
     # Get user data
     user_data = await db.get_user_by_id(user_id)
     if not user_data:
         return None
-        
+
     # Only refresh if using OAuth
     if user_data.get("uipath_auth_type") != "oauth":
         logger.info("User is not using OAuth, cannot refresh token")
         return None
-        
+
     # Check if we have OAuth credentials
     uipath_url = user_data.get("uipath_url")
     client_id = user_data.get("uipath_client_id")
     client_secret = user_data.get("uipath_client_secret")
-    
+
     if not all([uipath_url, client_id, client_secret]):
         logger.warning("Missing OAuth credentials, cannot refresh token")
         return None
-        
+
     try:
         # Exchange credentials for new token
         token_resp = await exchange_client_credentials_for_token(
@@ -399,7 +425,7 @@ async def _refresh_oauth_token_if_needed(user_id: int, error_message: str) -> Op
             client_id=client_id,
             client_secret=client_secret,
         )
-        
+
         new_token = token_resp.get("access_token")
         if new_token:
             # Update token in database
@@ -412,7 +438,7 @@ async def _refresh_oauth_token_if_needed(user_id: int, error_message: str) -> Op
         else:
             logger.error("Token response did not contain access_token")
             return None
-            
+
     except Exception as e:
         logger.error(f"Failed to refresh OAuth token: {e}")
         return None
@@ -464,10 +490,10 @@ async def list_uipath_folders(request):
 
     except Exception as e:
         error_msg = str(e)
-        
+
         # Try to refresh token if 401 error
         new_token = await _refresh_oauth_token_if_needed(user.id, error_msg)
-        
+
         if new_token:
             # Retry with new token
             try:
@@ -488,12 +514,16 @@ async def list_uipath_folders(request):
                     {
                         "count": len(folders),
                         "folders": folders,
-                        **({"matched": matched, "matched_count": len(matched)} if q else {}),
+                        **(
+                            {"matched": matched, "matched_count": len(matched)}
+                            if q
+                            else {}
+                        ),
                     }
                 )
             except Exception as retry_error:
                 return JSONResponse({"error": str(retry_error)}, status_code=500)
-        
+
         return JSONResponse({"error": error_msg}, status_code=500)
 
 
@@ -532,10 +562,10 @@ async def list_uipath_processes(request):
 
     except Exception as e:
         error_msg = str(e)
-        
+
         # Try to refresh token if 401 error
         new_token = await _refresh_oauth_token_if_needed(user.id, error_msg)
-        
+
         if new_token:
             # Retry with new token
             try:
@@ -547,7 +577,7 @@ async def list_uipath_processes(request):
                 return JSONResponse({"count": len(processes), "processes": processes})
             except Exception as retry_error:
                 return JSONResponse({"error": str(retry_error)}, status_code=500)
-        
+
         return JSONResponse({"error": error_msg}, status_code=500)
 
 
@@ -595,7 +625,12 @@ async def sse_handler(request):
 
     logger.debug("[SSE] Getting/creating MCP server: %s/%s", tenant_name, server_name)
     mcp_server_instance = await get_or_create_mcp_server(tenant_name, server_name)
-    logger.debug("[SSE] MCP server ready: %s/%s -> %s", tenant_name, server_name, bool(mcp_server_instance))
+    logger.debug(
+        "[SSE] MCP server ready: %s/%s -> %s",
+        tenant_name,
+        server_name,
+        bool(mcp_server_instance),
+    )
 
     if not mcp_server_instance:
         logger.error(f"MCP server not found: {tenant_name}/{server_name}")
@@ -676,9 +711,16 @@ async def http_streamable_post_handler(request):
             status_code=403,
         )
 
-    logger.debug("[HTTP-Streamable] Getting/creating MCP server: %s/%s", tenant_name, server_name)
+    logger.debug(
+        "[HTTP-Streamable] Getting/creating MCP server: %s/%s", tenant_name, server_name
+    )
     mcp_server_instance = await get_or_create_mcp_server(tenant_name, server_name)
-    logger.debug("[HTTP-Streamable] MCP server ready: %s/%s -> %s", tenant_name, server_name, bool(mcp_server_instance))
+    logger.debug(
+        "[HTTP-Streamable] MCP server ready: %s/%s -> %s",
+        tenant_name,
+        server_name,
+        bool(mcp_server_instance),
+    )
 
     if not mcp_server_instance:
         logger.error(f"MCP server not found: {tenant_name}/{server_name}")
@@ -714,7 +756,9 @@ async def http_streamable_post_handler(request):
             logger.debug("[HTTP-Streamable] Stream established for %s", key)
         except Exception:
             logger.exception("Failed to open streamable connect()")
-            return JSONResponse({"error": "Failed to initialize stream"}, status_code=500)
+            return JSONResponse(
+                {"error": "Failed to initialize stream"}, status_code=500
+            )
 
         async def run_streamable_session():
             try:
@@ -753,6 +797,7 @@ async def http_streamable_post_handler(request):
         # Record start time and small delay to let init handshake start
         try:
             import time
+
             streamable_started_at[key] = time.monotonic()
         except Exception:
             pass
@@ -761,6 +806,7 @@ async def http_streamable_post_handler(request):
     streamable = streamable_transports[key]
     try:
         import time
+
         started = streamable_started_at.get(key)
         if started:
             logger.debug(
@@ -1220,13 +1266,13 @@ async def serve_spa(request):
     """Serve the SPA for all non-API routes."""
     static_dir = Path(__file__).parent.parent / "static"
     index_file = static_dir / "index.html"
-    
+
     if index_file.exists():
         return FileResponse(index_file)
     else:
         return JSONResponse(
             {"error": "Frontend not built. Run 'npm run build' in frontend directory."},
-            status_code=404
+            status_code=404,
         )
 
 
@@ -1322,7 +1368,7 @@ if static_dir.exists():
     assets_dir = static_dir / "assets"
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
-    
+
     # Add SPA fallback route for all other paths
     # This must be added after mounting the app
     app.add_route("/{path:path}", serve_spa, methods=["GET"])
