@@ -357,6 +357,67 @@ async def update_uipath_config(request):
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
+async def _refresh_oauth_token_if_needed(user_id: int, error_message: str) -> Optional[str]:
+    """Refresh OAuth token if 401 error detected.
+    
+    Args:
+        user_id: User ID
+        error_message: Error message from API call
+        
+    Returns:
+        New access token if refreshed, None otherwise
+    """
+    # Check if error is 401 Unauthorized
+    if "401" not in error_message and "Unauthorized" not in error_message:
+        return None
+        
+    logger.info(f"Detected 401 error, attempting to refresh OAuth token for user {user_id}")
+    
+    # Get user data
+    user_data = await db.get_user_by_id(user_id)
+    if not user_data:
+        return None
+        
+    # Only refresh if using OAuth
+    if user_data.get("uipath_auth_type") != "oauth":
+        logger.info("User is not using OAuth, cannot refresh token")
+        return None
+        
+    # Check if we have OAuth credentials
+    uipath_url = user_data.get("uipath_url")
+    client_id = user_data.get("uipath_client_id")
+    client_secret = user_data.get("uipath_client_secret")
+    
+    if not all([uipath_url, client_id, client_secret]):
+        logger.warning("Missing OAuth credentials, cannot refresh token")
+        return None
+        
+    try:
+        # Exchange credentials for new token
+        token_resp = await exchange_client_credentials_for_token(
+            uipath_url=uipath_url,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+        
+        new_token = token_resp.get("access_token")
+        if new_token:
+            # Update token in database
+            await db.update_user_uipath_config(
+                user_id=user_id,
+                uipath_access_token=new_token,
+            )
+            logger.info(f"Successfully refreshed OAuth token for user {user_id}")
+            return new_token
+        else:
+            logger.error("Token response did not contain access_token")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Failed to refresh OAuth token: {e}")
+        return None
+
+
 async def list_uipath_folders(request):
     """List UiPath folders using current user's credentials."""
     user = await get_current_user(request, db)
@@ -402,7 +463,38 @@ async def list_uipath_folders(request):
         )
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        error_msg = str(e)
+        
+        # Try to refresh token if 401 error
+        new_token = await _refresh_oauth_token_if_needed(user.id, error_msg)
+        
+        if new_token:
+            # Retry with new token
+            try:
+                matched = []
+                if q:
+                    matched = await client.list_folders(
+                        uipath_url=user_data["uipath_url"],
+                        uipath_access_token=new_token,
+                        search=q,
+                    )
+
+                folders = await client.list_folders(
+                    uipath_url=user_data["uipath_url"],
+                    uipath_access_token=new_token,
+                )
+
+                return JSONResponse(
+                    {
+                        "count": len(folders),
+                        "folders": folders,
+                        **({"matched": matched, "matched_count": len(matched)} if q else {}),
+                    }
+                )
+            except Exception as retry_error:
+                return JSONResponse({"error": str(retry_error)}, status_code=500)
+        
+        return JSONResponse({"error": error_msg}, status_code=500)
 
 
 async def list_uipath_processes(request):
@@ -439,7 +531,24 @@ async def list_uipath_processes(request):
         return JSONResponse({"count": len(processes), "processes": processes})
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        error_msg = str(e)
+        
+        # Try to refresh token if 401 error
+        new_token = await _refresh_oauth_token_if_needed(user.id, error_msg)
+        
+        if new_token:
+            # Retry with new token
+            try:
+                processes = await client.list_processes(
+                    folder_id=folder_id,
+                    uipath_url=user_data["uipath_url"],
+                    uipath_access_token=new_token,
+                )
+                return JSONResponse({"count": len(processes), "processes": processes})
+            except Exception as retry_error:
+                return JSONResponse({"error": str(retry_error)}, status_code=500)
+        
+        return JSONResponse({"error": error_msg}, status_code=500)
 
 
 # ==================== MCP Endpoints ====================
