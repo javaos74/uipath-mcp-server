@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  uipath-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: uipath-mcp-server:latest
+    container_name: uipath-mcp-server
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist database
+      - ./data/database:/app/database
+      # Persist logs
+      - ./data/logs:/app/logs
+      # Mount custom .env file (optional)
+      - ./.env:/app/.env:ro
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DB_PATH=database/mcp_servers.db
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  database:
+  logs:

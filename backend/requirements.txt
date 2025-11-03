@@ -1,0 +1,24 @@
+# UiPath MCP Server Dependencies
+# Generated from pyproject.toml for easier deployment
+
+# Core MCP and Web Framework
+uipath>=2.1.54
+mcp>=1.11.0
+starlette>=0.41.0
+uvicorn>=0.32.0
+
+# Database and Data Handling
+aiosqlite>=0.20.0
+pydantic[email]>=2.11.0
+
+# Authentication and Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# HTTP and SSE Support
+sse-starlette>=2.1.3
+python-multipart>=0.0.20
+httpx>=0.28.0
+
+# Configuration
+python-dotenv>=1.0.0

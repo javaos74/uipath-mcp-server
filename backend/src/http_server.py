@@ -730,23 +730,32 @@ async def sse_handler(request):
 
     logger.info(f"[SSE] Starting SSE session for {key}")
     # Handle the SSE connection directly
-    async with sse.connect_sse(request.scope, request.receive, request._send) as (
-        read_stream,
-        write_stream,
-    ):
-        logger.debug("[SSE] connect_sse opened for %s", key)
-        # Mark init started for this key to allow message POST handler to wait briefly
-        evt = sse_init_started.get(key)
-        if not evt:
-            evt = asyncio.Event()
-            sse_init_started[key] = evt
-        evt.set()
-        # Run the MCP server session
-        logger.debug("[SSE] Running MCP server session (run) for %s", key)
-        await mcp_server.run(
-            read_stream, write_stream, mcp_server.create_initialization_options()
+    try:
+        async with sse.connect_sse(request.scope, request.receive, request._send) as (
+            read_stream,
+            write_stream,
+        ):
+            logger.debug("[SSE] connect_sse opened for %s", key)
+            # Mark init started for this key to allow message POST handler to wait briefly
+            evt = sse_init_started.get(key)
+            if not evt:
+                evt = asyncio.Event()
+                sse_init_started[key] = evt
+            evt.set()
+            # Run the MCP server session
+            logger.debug("[SSE] Running MCP server session (run) for %s", key)
+            await mcp_server.run(
+                read_stream, write_stream, mcp_server.create_initialization_options()
+            )
+        logger.info(f"[SSE] Session ended for {key}")
+        # SSE 연결이 정상적으로 종료됨 - 빈 응답 반환
+        return Response(status_code=200)
+    except Exception as e:
+        logger.error(f"[SSE] Error in session {key}: {e}", exc_info=True)
+        return JSONResponse(
+            {"error": f"SSE session error: {str(e)}"}, 
+            status_code=500
         )
-    logger.info(f"[SSE] Session ended for {key}")
 
 
 async def http_streamable_post_handler(request):

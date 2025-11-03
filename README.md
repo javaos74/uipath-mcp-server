@@ -51,6 +51,23 @@ uv run python -m src.main
 
 Access the application at `http://localhost:8000`
 
+### Docker Deployment
+
+```bash
+# 1. Build frontend first
+./build.sh
+
+# 2. Build Docker image (uses version from pyproject.toml)
+./docker-build-simple.sh
+
+# 3. Run with Docker Compose
+docker-compose up -d
+```
+
+Docker image will be tagged with the version from `backend/pyproject.toml` (currently: `0.1.0`).
+
+See [DOCKER.md](DOCKER.md) for detailed Docker deployment guide.
+
 ### Manual Build
 
 ```bash
