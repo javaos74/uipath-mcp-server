@@ -29,7 +29,7 @@ class Database:
                     email TEXT UNIQUE NOT NULL,
                     hashed_password TEXT NOT NULL,
                     role TEXT NOT NULL DEFAULT 'user',
-                    is_active BOOLEAN DEFAULT 1,
+                    is_active BOOLEAN DEFAULT 0,
                     uipath_url TEXT,
                     uipath_auth_type TEXT DEFAULT 'pat',
                     uipath_access_token TEXT,

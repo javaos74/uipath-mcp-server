@@ -126,7 +126,7 @@ async def get_or_create_mcp_server(
 
 
 async def register(request):
-    """Register a new user."""
+    """Register a new user (pending approval)."""
     try:
         data = await request.json()
         user_data = UserCreate(**data)
@@ -140,30 +140,31 @@ async def register(request):
             )
             return JSONResponse({"error": "Username already exists"}, status_code=409)
 
-        # Create user
+        # Create user with is_active=0 (pending approval)
         user_id = await db.create_user(
             username=user_data.username,
             email=user_data.email,
             password=user_data.password,
-            role=user_data.role,
+            role="user",  # Always create as user, admin can change later
         )
 
-        # Get created user
-        user = await db.get_user_by_id(user_id)
-        user_data = {
-            k: v
-            for k, v in user.items()
-            if k
-            not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
-        }
-        user_data["has_uipath_token"] = False  # New user has no token
-        user_data["has_oauth_credentials"] = False  # New user has no OAuth
-        user_response = UserResponse(**user_data)
+        # Set is_active to 0 (pending approval)
+        import aiosqlite
+        async with aiosqlite.connect(db.db_path) as conn:
+            await conn.execute(
+                "UPDATE users SET is_active = 0 WHERE id = ?",
+                (user_id,),
+            )
+            await conn.commit()
 
         logger.info(
-            f"User registered successfully: {user_data['username']} (id={user_id})"
+            f"User registered successfully (pending approval): {user_data.username} (id={user_id})"
         )
-        return JSONResponse(user_response.model_dump(), status_code=201)
+        
+        return JSONResponse({
+            "message": "Registration successful. Your account is pending administrator approval.",
+            "username": user_data.username
+        }, status_code=201)
 
     except Exception as e:
         logger.error(f"Registration error: {e}", exc_info=True)
@@ -192,10 +193,12 @@ async def login(request):
                 {"error": "Invalid username or password"}, status_code=401
             )
 
-        # Check if active
+        # Check if active (0 = pending approval, 1 = approved/active)
         if not user["is_active"]:
-            logger.warning(f"Login failed: inactive account - {login_data.username}")
-            return JSONResponse({"error": "User account is inactive"}, status_code=403)
+            logger.warning(f"Login failed: account not approved - {login_data.username}")
+            return JSONResponse(
+                {"error": "Your account is pending administrator approval"}, status_code=403
+            )
 
         # Create access token
         access_token = create_access_token(
@@ -1513,6 +1516,370 @@ async def delete_builtin_tool(request):
     return JSONResponse({"message": "Built-in tool deleted"}, status_code=204)
 
 
+# ==================== User Management (Admin) ====================
+
+
+async def list_users_admin(request):
+    """List all users (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    # Get all users, pending users first
+    import aiosqlite
+    async with aiosqlite.connect(db.db_path) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute(
+            "SELECT id, username, email, role, is_active, created_at FROM users ORDER BY is_active ASC, created_at DESC"
+        )
+        rows = await cursor.fetchall()
+        users = [dict(row) for row in rows]
+
+    return JSONResponse({"count": len(users), "users": users})
+
+
+async def approve_user_admin(request):
+    """Approve a user (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    try:
+        user_id = int(request.path_params["user_id"])
+
+        # Get user
+        target_user = await db.get_user_by_id(user_id)
+        if not target_user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        # Approve user (set is_active = 1)
+        import aiosqlite
+        async with aiosqlite.connect(db.db_path) as conn:
+            await conn.execute(
+                "UPDATE users SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (user_id,),
+            )
+            await conn.commit()
+
+        logger.info(f"User approved: {target_user['username']} (id={user_id})")
+
+        # Get updated user
+        updated_user = await db.get_user_by_id(user_id)
+        user_data = {
+            k: v
+            for k, v in updated_user.items()
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+        }
+
+        return JSONResponse(user_data)
+
+    except Exception as e:
+        logger.error(f"Error approving user: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def deactivate_user_admin(request):
+    """Deactivate a user (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    try:
+        user_id = int(request.path_params["user_id"])
+
+        # Cannot deactivate self
+        if user_id == user.id:
+            return JSONResponse(
+                {"error": "Cannot deactivate your own account"}, status_code=400
+            )
+
+        # Get user
+        target_user = await db.get_user_by_id(user_id)
+        if not target_user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        # Deactivate user (set is_active = 0)
+        import aiosqlite
+        async with aiosqlite.connect(db.db_path) as conn:
+            await conn.execute(
+                "UPDATE users SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (user_id,),
+            )
+            await conn.commit()
+
+        logger.info(f"User deactivated: {target_user['username']} (id={user_id})")
+
+        # Get updated user
+        updated_user = await db.get_user_by_id(user_id)
+        user_data = {
+            k: v
+            for k, v in updated_user.items()
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+        }
+
+        return JSONResponse(user_data)
+
+    except Exception as e:
+        logger.error(f"Error deactivating user: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def delete_user_admin(request):
+    """Delete a user (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    try:
+        user_id = int(request.path_params["user_id"])
+
+        # Cannot delete self
+        if user_id == user.id:
+            return JSONResponse(
+                {"error": "Cannot delete your own account"}, status_code=400
+            )
+
+        # Get user
+        target_user = await db.get_user_by_id(user_id)
+        if not target_user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        # Delete user
+        import aiosqlite
+        async with aiosqlite.connect(db.db_path) as conn:
+            await conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            await conn.commit()
+
+        logger.info(f"User deleted: {target_user['username']} (id={user_id})")
+
+        return JSONResponse({"message": "User deleted"}, status_code=204)
+
+    except Exception as e:
+        logger.error(f"Error deleting user: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+# ==================== User Management (Admin) ====================
+
+
+async def list_users_admin(request):
+    """List all users (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    # Get all users
+    import aiosqlite
+    async with aiosqlite.connect(db.db_path) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute(
+            """
+            SELECT id, username, email, role, is_active, approval_status, created_at 
+            FROM users 
+            ORDER BY 
+                CASE approval_status 
+                    WHEN 'pending' THEN 1 
+                    WHEN 'approved' THEN 2 
+                    WHEN 'rejected' THEN 3 
+                END,
+                created_at DESC
+            """
+        )
+        rows = await cursor.fetchall()
+        users = [dict(row) for row in rows]
+
+    return JSONResponse({"count": len(users), "users": users})
+
+
+async def create_user_admin(request):
+    """Create a new user (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    try:
+        data = await request.json()
+        username = data.get("username")
+        email = data.get("email")
+        password = data.get("password")
+        role = data.get("role", "user")
+
+        if not username or not email or not password:
+            return JSONResponse(
+                {"error": "Username, email, and password are required"}, status_code=400
+            )
+
+        # Check if user exists
+        existing = await db.get_user_by_username(username)
+        if existing:
+            return JSONResponse(
+                {"error": f"User '{username}' already exists"}, status_code=409
+            )
+
+        # Create user
+        user_id = await db.create_user(username, email, password, role)
+
+        # Get created user
+        created_user = await db.get_user_by_id(user_id)
+        user_data = {
+            k: v
+            for k, v in created_user.items()
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+        }
+
+        return JSONResponse(user_data, status_code=201)
+
+    except Exception as e:
+        logger.error(f"Error creating user: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def approve_user_admin(request):
+    """Approve a user (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    try:
+        user_id = int(request.path_params["user_id"])
+
+        # Get user
+        target_user = await db.get_user_by_id(user_id)
+        if not target_user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        # Approve user (set is_active = 1)
+        import aiosqlite
+        async with aiosqlite.connect(db.db_path) as conn:
+            await conn.execute(
+                "UPDATE users SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (user_id,),
+            )
+            await conn.commit()
+
+        logger.info(f"User approved: {target_user['username']} (id={user_id})")
+
+        # Get updated user
+        updated_user = await db.get_user_by_id(user_id)
+        user_data = {
+            k: v
+            for k, v in updated_user.items()
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+        }
+
+        return JSONResponse(user_data)
+
+    except Exception as e:
+        logger.error(f"Error approving user: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def deactivate_user_admin(request):
+    """Deactivate a user (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    try:
+        user_id = int(request.path_params["user_id"])
+
+        # Cannot deactivate self
+        if user_id == user.id:
+            return JSONResponse(
+                {"error": "Cannot deactivate your own account"}, status_code=400
+            )
+
+        # Get user
+        target_user = await db.get_user_by_id(user_id)
+        if not target_user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        # Deactivate user (set is_active = 0)
+        import aiosqlite
+        async with aiosqlite.connect(db.db_path) as conn:
+            await conn.execute(
+                "UPDATE users SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (user_id,),
+            )
+            await conn.commit()
+
+        logger.info(f"User deactivated: {target_user['username']} (id={user_id})")
+
+        # Get updated user
+        updated_user = await db.get_user_by_id(user_id)
+        user_data = {
+            k: v
+            for k, v in updated_user.items()
+            if k not in ["hashed_password", "uipath_access_token", "uipath_client_secret"]
+        }
+
+        return JSONResponse(user_data)
+
+    except Exception as e:
+        logger.error(f"Error deactivating user: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def delete_user_admin(request):
+    """Delete a user (admin only)."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    if user.role != "admin":
+        return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+    try:
+        user_id = int(request.path_params["user_id"])
+
+        # Cannot delete self
+        if user_id == user.id:
+            return JSONResponse(
+                {"error": "Cannot delete your own account"}, status_code=400
+            )
+
+        # Get user
+        target_user = await db.get_user_by_id(user_id)
+        if not target_user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        # Delete user
+        import aiosqlite
+        async with aiosqlite.connect(db.db_path) as conn:
+            await conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            await conn.commit()
+
+        return JSONResponse({"message": "User deleted"}, status_code=204)
+
+    except Exception as e:
+        logger.error(f"Error deleting user: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
 # ==================== Static Files & SPA ====================
 
 
@@ -1619,6 +1986,11 @@ app = Starlette(
         Route(
             "/api/builtin-tools/{tool_id}", delete_builtin_tool, methods=["DELETE"]
         ),
+        # User Management API (Admin)
+        Route("/api/admin/users", list_users_admin, methods=["GET"]),
+        Route("/api/admin/users/{user_id}/approve", approve_user_admin, methods=["POST"]),
+        Route("/api/admin/users/{user_id}/deactivate", deactivate_user_admin, methods=["POST"]),
+        Route("/api/admin/users/{user_id}", delete_user_admin, methods=["DELETE"]),
     ],
     on_startup=[startup],
 )

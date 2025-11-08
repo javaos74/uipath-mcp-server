@@ -12,8 +12,34 @@
   "action": {
     "activate": "Activate",
     "deactivate": "Deactivate",
+    "approve": "Approve",
     "edit": "Edit",
     "delete": "Delete"
+  },
+  "users": {
+    "title": "User Management",
+    "subtitle": "Manage user accounts and approvals",
+    "empty": "No users yet",
+    "you": "You",
+    "confirmApprove": "Approve user '{{username}}'?",
+    "confirmDeactivate": "Deactivate user '{{username}}'?",
+    "confirmDelete": "Delete user '{{username}}'? This action cannot be undone.",
+    "role": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "table": {
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "createdAt": "Created",
+      "actions": "Actions"
+    },
+    "error": {
+      "cannotDeactivateSelf": "You cannot deactivate your own account",
+      "cannotDeleteSelf": "You cannot delete your own account"
+    }
   },
   "field": {
     "function": "Function",

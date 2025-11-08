@@ -12,8 +12,34 @@
   "action": {
     "activate": "활성화",
     "deactivate": "비활성화",
+    "approve": "승인",
     "edit": "편집",
     "delete": "삭제"
+  },
+  "users": {
+    "title": "사용자 관리",
+    "subtitle": "사용자 계정 및 승인 관리",
+    "empty": "아직 사용자가 없습니다",
+    "you": "본인",
+    "confirmApprove": "사용자 '{{username}}'을(를) 승인하시겠습니까?",
+    "confirmDeactivate": "사용자 '{{username}}'을(를) 비활성화하시겠습니까?",
+    "confirmDelete": "사용자 '{{username}}'을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "role": {
+      "admin": "관리자",
+      "user": "사용자"
+    },
+    "table": {
+      "username": "사용자명",
+      "email": "이메일",
+      "role": "역할",
+      "status": "상태",
+      "createdAt": "생성일",
+      "actions": "작업"
+    },
+    "error": {
+      "cannotDeactivateSelf": "자신의 계정은 비활성화할 수 없습니다",
+      "cannotDeleteSelf": "자신의 계정은 삭제할 수 없습니다"
+    }
   },
   "field": {
     "function": "함수",

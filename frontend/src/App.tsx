@@ -6,6 +6,7 @@ import Dashboard from '@/pages/Dashboard'
 import ServerDetail from '@/pages/ServerDetail'
 import Settings from '@/pages/Settings'
 import BuiltinToolsAdmin from '@/pages/BuiltinToolsAdmin'
+import UsersAdmin from '@/pages/UsersAdmin'
 import Layout from '@/components/Layout'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,16 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function RoleBasedHome() {
+  const user = useAuthStore((state) => state.user)
+  
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin/users" replace />
+  }
+  
+  return <Dashboard />
+}
+
 function App() {
   return (
     <Routes>
@@ -42,9 +53,17 @@ function App() {
           </PrivateRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<RoleBasedHome />} />
         <Route path="servers/:tenantName/:serverName" element={<ServerDetail />} />
         <Route path="settings" element={<Settings />} />
+        <Route
+          path="admin/users"
+          element={
+            <AdminRoute>
+              <UsersAdmin />
+            </AdminRoute>
+          }
+        />
         <Route
           path="admin/builtin-tools"
           element={
