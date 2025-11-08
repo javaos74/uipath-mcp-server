@@ -1,19 +1,45 @@
 {
-  "title": "Built-in Tools Management",
-  "subtitle": "Manage Python-based built-in tools for MCP servers",
-  "backToDashboard": "Back to Dashboard",
-  "createButton": "Create Built-in Tool",
-  "empty": "No built-in tools yet. Create your first built-in tool!",
-  "confirmDelete": "Delete built-in tool '{{name}}'? This will affect all servers using this tool.",
+  "title": "内置工具管理",
+  "subtitle": "管理 MCP 服务器的 Python 内置工具",
+  "backToDashboard": "返回仪表板",
+  "createButton": "创建内置工具",
+  "empty": "还没有内置工具。创建您的第一个内置工具！",
+  "confirmDelete": "删除内置工具 '{{name}}'？这将影响所有使用此工具的服务器。",
   "status": {
-    "active": "Active",
-    "inactive": "Inactive"
+    "active": "活动",
+    "inactive": "非活动"
   },
   "action": {
-    "activate": "Activate",
-    "deactivate": "Deactivate",
-    "edit": "Edit",
-    "delete": "Delete"
+    "activate": "激活",
+    "deactivate": "停用",
+    "approve": "批准",
+    "edit": "编辑",
+    "delete": "删除"
+  },
+  "users": {
+    "title": "用户管理",
+    "subtitle": "管理用户账户和审批",
+    "empty": "还没有用户",
+    "you": "您",
+    "confirmApprove": "批准用户 '{{username}}'？",
+    "confirmDeactivate": "停用用户 '{{username}}'？",
+    "confirmDelete": "删除用户 '{{username}}'？此操作无法撤消。",
+    "role": {
+      "admin": "管理员",
+      "user": "用户"
+    },
+    "table": {
+      "username": "用户名",
+      "email": "邮箱",
+      "role": "角色",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "actions": "操作"
+    },
+    "error": {
+      "cannotDeactivateSelf": "您不能停用自己的账户",
+      "cannotDeleteSelf": "您不能删除自己的账户"
+    }
   },
   "field": {
     "function": "Function",
@@ -21,28 +47,28 @@
     "parameters": "Parameters"
   },
   "form": {
-    "titleCreate": "Create Built-in Tool",
-    "titleEdit": "Edit Built-in Tool: {{name}}",
+    "titleCreate": "创建内置工具",
+    "titleEdit": "编辑内置工具：{{name}}",
     "field": {
-      "name": "Tool Name",
-      "nameHelp": "Tool name cannot be changed after creation",
-      "description": "Description",
-      "pythonFunction": "Python Function",
-      "pythonFunctionHelp": "Module path and function name (e.g., module.function_name)",
-      "apiKey": "API Key (Optional)",
-      "apiKeyPlaceholder": "Enter API key if this tool requires external service authentication",
-      "apiKeyHelp": "This key will be passed to the tool when executed",
-      "inputSchema": "Input Schema (JSON)",
-      "inputSchemaHelp": "JSON Schema defining the tool's input parameters"
+      "name": "工具名称",
+      "nameHelp": "工具名称创建后无法更改",
+      "description": "描述",
+      "pythonFunction": "Python 函数",
+      "pythonFunctionHelp": "模块路径和函数名（例如：module.function_name）",
+      "apiKey": "API 密钥（可选）",
+      "apiKeyPlaceholder": "如果此工具需要外部服务认证，请输入 API 密钥",
+      "apiKeyHelp": "此密钥将在执行时传递给工具",
+      "inputSchema": "输入架构（JSON）",
+      "inputSchemaHelp": "定义工具输入参数的 JSON 架构"
     },
     "button": {
-      "create": "Create Tool",
-      "update": "Update Tool",
-      "saving": "Saving..."
+      "create": "创建工具",
+      "update": "更新工具",
+      "saving": "保存中..."
     },
     "error": {
-      "saveFailed": "Failed to save built-in tool",
-      "invalidJson": "Invalid JSON format in input schema"
+      "saveFailed": "保存内置工具失败",
+      "invalidJson": "输入架构的 JSON 格式无效"
     }
   }
 }

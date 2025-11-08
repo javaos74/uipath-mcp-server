@@ -1,19 +1,45 @@
 {
-  "title": "Built-in Tools Management",
-  "subtitle": "Manage Python-based built-in tools for MCP servers",
-  "backToDashboard": "Back to Dashboard",
-  "createButton": "Create Built-in Tool",
-  "empty": "No built-in tools yet. Create your first built-in tool!",
-  "confirmDelete": "Delete built-in tool '{{name}}'? This will affect all servers using this tool.",
+  "title": "組み込みツール管理",
+  "subtitle": "MCP サーバー用の Python ベース組み込みツールを管理",
+  "backToDashboard": "ダッシュボードに戻る",
+  "createButton": "組み込みツールを作成",
+  "empty": "まだ組み込みツールがありません。最初の組み込みツールを作成しましょう！",
+  "confirmDelete": "組み込みツール '{{name}}' を削除しますか？このツールを使用しているすべてのサーバーに影響します。",
   "status": {
-    "active": "Active",
-    "inactive": "Inactive"
+    "active": "有効",
+    "inactive": "無効"
   },
   "action": {
-    "activate": "Activate",
-    "deactivate": "Deactivate",
-    "edit": "Edit",
-    "delete": "Delete"
+    "activate": "有効化",
+    "deactivate": "無効化",
+    "approve": "承認",
+    "edit": "編集",
+    "delete": "削除"
+  },
+  "users": {
+    "title": "ユーザー管理",
+    "subtitle": "ユーザーアカウントと承認を管理",
+    "empty": "まだユーザーがいません",
+    "you": "あなた",
+    "confirmApprove": "ユーザー '{{username}}' を承認しますか？",
+    "confirmDeactivate": "ユーザー '{{username}}' を無効化しますか？",
+    "confirmDelete": "ユーザー '{{username}}' を削除しますか？この操作は元に戻せません。",
+    "role": {
+      "admin": "管理者",
+      "user": "ユーザー"
+    },
+    "table": {
+      "username": "ユーザー名",
+      "email": "メール",
+      "role": "役割",
+      "status": "ステータス",
+      "createdAt": "作成日",
+      "actions": "操作"
+    },
+    "error": {
+      "cannotDeactivateSelf": "自分のアカウントを無効化することはできません",
+      "cannotDeleteSelf": "自分のアカウントを削除することはできません"
+    }
   },
   "field": {
     "function": "Function",
@@ -21,28 +47,28 @@
     "parameters": "Parameters"
   },
   "form": {
-    "titleCreate": "Create Built-in Tool",
-    "titleEdit": "Edit Built-in Tool: {{name}}",
+    "titleCreate": "組み込みツールを作成",
+    "titleEdit": "組み込みツールを編集：{{name}}",
     "field": {
-      "name": "Tool Name",
-      "nameHelp": "Tool name cannot be changed after creation",
-      "description": "Description",
-      "pythonFunction": "Python Function",
-      "pythonFunctionHelp": "Module path and function name (e.g., module.function_name)",
-      "apiKey": "API Key (Optional)",
-      "apiKeyPlaceholder": "Enter API key if this tool requires external service authentication",
-      "apiKeyHelp": "This key will be passed to the tool when executed",
-      "inputSchema": "Input Schema (JSON)",
-      "inputSchemaHelp": "JSON Schema defining the tool's input parameters"
+      "name": "ツール名",
+      "nameHelp": "ツール名は作成後に変更できません",
+      "description": "説明",
+      "pythonFunction": "Python 関数",
+      "pythonFunctionHelp": "モジュールパスと関数名（例：module.function_name）",
+      "apiKey": "API キー（オプション）",
+      "apiKeyPlaceholder": "このツールが外部サービス認証を必要とする場合は API キーを入力してください",
+      "apiKeyHelp": "このキーは実行時にツールに渡されます",
+      "inputSchema": "入力スキーマ（JSON）",
+      "inputSchemaHelp": "ツールの入力パラメーターを定義する JSON スキーマ"
     },
     "button": {
-      "create": "Create Tool",
-      "update": "Update Tool",
-      "saving": "Saving..."
+      "create": "ツールを作成",
+      "update": "ツールを更新",
+      "saving": "保存中..."
     },
     "error": {
-      "saveFailed": "Failed to save built-in tool",
-      "invalidJson": "Invalid JSON format in input schema"
+      "saveFailed": "組み込みツールの保存に失敗しました",
+      "invalidJson": "入力スキーマの JSON 形式が無効です"
     }
   }
 }
