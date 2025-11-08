@@ -153,6 +153,30 @@ class Database:
             except aiosqlite.OperationalError:
                 pass
 
+            # Migrate existing data: set tool_type to 'uipath' for NULL values
+            try:
+                await db.execute(
+                    """
+                    UPDATE mcp_tools 
+                    SET tool_type = 'uipath' 
+                    WHERE tool_type IS NULL
+                    """
+                )
+                await db.commit()
+                # Log migration result
+                import logging
+                logger = logging.getLogger(__name__)
+                cursor = await db.execute(
+                    "SELECT COUNT(*) FROM mcp_tools WHERE tool_type = 'uipath'"
+                )
+                count = await cursor.fetchone()
+                if count and count[0] > 0:
+                    logger.info(f"Migrated {count[0]} existing tools to tool_type='uipath'")
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Migration warning: {e}")
+
             # Create indexes for better query performance
             await db.execute(
                 """
