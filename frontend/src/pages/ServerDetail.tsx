@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { serversAPI, toolsAPI, uipathAPI } from '@/lib/api'
+import { serversAPI, toolsAPI, uipathAPI, builtinToolsAPI } from '@/lib/api'
 import type { MCPTool, MCPToolCreate, UiPathProcess, UiPathFolder } from '@/types'
 import './ServerDetail.css'
 
@@ -596,15 +596,7 @@ function BuiltinToolPicker({
 
   const { data: builtinToolsData, isLoading, error: loadError } = useQuery({
     queryKey: ['builtin-tools'],
-    queryFn: async () => {
-      const response = await fetch('/api/builtin-tools?active_only=true', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      })
-      if (!response.ok) throw new Error('Failed to load built-in tools')
-      return response.json()
-    },
+    queryFn: () => builtinToolsAPI.list(true),
   })
 
   const createMutation = useMutation({

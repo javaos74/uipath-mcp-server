@@ -195,4 +195,31 @@ export const uipathAPI = {
   },
 }
 
+// Built-in Tools API
+export const builtinToolsAPI = {
+  list: async (activeOnly: boolean = true): Promise<{ count: number; tools: any[] }> => {
+    const response = await api.get(`/api/builtin-tools?active_only=${activeOnly}`)
+    return response.data
+  },
+
+  get: async (toolId: number): Promise<any> => {
+    const response = await api.get(`/api/builtin-tools/${toolId}`)
+    return response.data
+  },
+
+  create: async (data: any): Promise<any> => {
+    const response = await api.post('/api/builtin-tools', data)
+    return response.data
+  },
+
+  update: async (toolId: number, data: any): Promise<any> => {
+    const response = await api.put(`/api/builtin-tools/${toolId}`, data)
+    return response.data
+  },
+
+  delete: async (toolId: number): Promise<void> => {
+    await api.delete(`/api/builtin-tools/${toolId}`)
+  },
+}
+
 export default api
