@@ -65,6 +65,11 @@ export const authAPI = {
     const response = await api.put('/auth/uipath-config', data)
     return response.data
   },
+
+  changePassword: async (data: { old_password: string; new_password: string }): Promise<{ message: string }> => {
+    const response = await api.put('/auth/change-password', data)
+    return response.data
+  },
 }
 
 // Servers API

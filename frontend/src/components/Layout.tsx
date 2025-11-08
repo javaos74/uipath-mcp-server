@@ -31,6 +31,9 @@ export default function Layout() {
                 <Link to="/admin/builtin-tools" className="nav-link">
                   🔧 {t('common:nav.builtinTools', { ns: 'common' })}
                 </Link>
+                <Link to="/settings" className="nav-link">
+                  ⚙️ {t('common:nav.settings', { ns: 'common' })}
+                </Link>
               </>
             ) : (
               <>

@@ -54,5 +54,33 @@
       "oauthFailed": "OAuth credentials saved, but token generation failed. Please check your credentials and UiPath URL.",
       "saved": "Configuration saved"
     }
+  },
+  "password": {
+    "title": "Change Password",
+    "description": "Update your account password. Make sure to use a strong password.",
+    "oldPassword": {
+      "label": "Current Password",
+      "placeholder": "Enter your current password"
+    },
+    "newPassword": {
+      "label": "New Password",
+      "placeholder": "Enter your new password",
+      "help": "Password must be at least 6 characters long"
+    },
+    "confirmPassword": {
+      "label": "Confirm New Password",
+      "placeholder": "Re-enter your new password"
+    },
+    "button": {
+      "change": "Change Password",
+      "changing": "Changing..."
+    },
+    "message": {
+      "success": "Password changed successfully"
+    },
+    "error": {
+      "mismatch": "New passwords do not match",
+      "tooShort": "Password must be at least 6 characters long"
+    }
   }
 }

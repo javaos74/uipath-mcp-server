@@ -3,13 +3,14 @@
 import aiosqlite
 import json
 import hashlib
+import os
 from typing import List, Optional, Dict, Any
 
 
 class Database:
     """SQLite database manager for MCP servers, tools, and users."""
 
-    def __init__(self, db_path: str = "backend/database/mcp_servers.db"):
+    def __init__(self, db_path: str = "database/mcp_servers.db"):
         """Initialize database connection.
 
         Args:
@@ -19,6 +20,9 @@ class Database:
 
     async def initialize(self):
         """Create database tables if they don't exist."""
+        # Check if database file exists
+        db_exists = os.path.exists(self.db_path)
+        
         async with aiosqlite.connect(self.db_path) as db:
             # Users table
             await db.execute(
@@ -224,6 +228,10 @@ class Database:
             )
 
             await db.commit()
+        
+        # Create default admin user if database was just created
+        if not db_exists:
+            await self._create_default_admin()
 
     # ==================== User Management ====================
 
@@ -237,6 +245,37 @@ class Database:
             Hashed password
         """
         return hashlib.sha256(password.encode()).hexdigest()
+
+    async def _create_default_admin(self):
+        """Create default admin user if database is new.
+        
+        Creates an admin account with:
+        - Username: admin
+        - Password: admin
+        - Email: admin@mydomain.com
+        - Role: admin
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Check if admin user already exists
+            existing_admin = await self.get_user_by_username("admin")
+            if existing_admin:
+                logger.info("Admin user already exists, skipping creation")
+                return
+            
+            # Create admin user
+            admin_id = await self.create_user(
+                username="admin",
+                email="admin@mydomain.com",
+                password="admin",
+                role="admin"
+            )
+            logger.info(f"Created default admin user (ID: {admin_id})")
+            logger.warning("⚠️  Default admin account created with username 'admin' and password 'admin'. Please change the password immediately!")
+        except Exception as e:
+            logger.error(f"Failed to create default admin user: {e}")
 
     async def create_user(
         self, username: str, email: str, password: str, role: str = "user"
@@ -264,6 +303,44 @@ class Database:
             )
             await db.commit()
             return cursor.lastrowid
+
+    async def update_user_password(
+        self, user_id: int, old_password: str, new_password: str
+    ) -> bool:
+        """Update user's password.
+
+        Args:
+            user_id: User ID
+            old_password: Current password (for verification)
+            new_password: New password (will be hashed)
+
+        Returns:
+            True if updated, False if old password is incorrect
+        """
+        # Get user to verify old password
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            return False
+
+        # Verify old password
+        if not self.verify_password(old_password, user["hashed_password"]):
+            return False
+
+        # Hash new password
+        new_hashed_password = self._hash_password(new_password)
+
+        # Update password
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                """
+                UPDATE users 
+                SET hashed_password = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (new_hashed_password, user_id),
+            )
+            await db.commit()
+            return cursor.rowcount > 0
 
     async def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
         """Get user by username.

@@ -384,6 +384,38 @@ async def update_uipath_config(request):
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
+async def change_password(request):
+    """Change current user's password."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    try:
+        data = await request.json()
+        from .models import PasswordChange
+        password_data = PasswordChange(**data)
+
+        # Update password
+        success = await db.update_user_password(
+            user_id=user.id,
+            old_password=password_data.old_password,
+            new_password=password_data.new_password,
+        )
+
+        if not success:
+            logger.warning(f"Password change failed for user {user.username}: incorrect old password")
+            return JSONResponse(
+                {"error": "Current password is incorrect"}, status_code=400
+            )
+
+        logger.info(f"Password changed successfully for user {user.username}")
+        return JSONResponse({"message": "Password changed successfully"})
+
+    except Exception as e:
+        logger.error(f"Password change error: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
 async def _ensure_valid_oauth_token(user_id: int) -> Optional[str]:
     """Ensure user has a valid OAuth token, refreshing proactively if needed.
     
@@ -1906,6 +1938,7 @@ app = Starlette(
         Route("/auth/login", login, methods=["POST"]),
         Route("/auth/me", get_me, methods=["GET"]),
         Route("/auth/uipath-config", update_uipath_config, methods=["PUT"]),
+        Route("/auth/change-password", change_password, methods=["PUT"]),
         Route("/api/uipath/folders", list_uipath_folders, methods=["GET"]),
         Route("/api/uipath/processes", list_uipath_processes, methods=["GET"]),
         # MCP endpoints

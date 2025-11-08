@@ -76,6 +76,13 @@ class Token(BaseModel):
     user: UserResponse
 
 
+class PasswordChange(BaseModel):
+    """Request model for changing password."""
+
+    old_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=6, description="New password")
+
+
 # ==================== MCP Server Models ====================
 
 
