@@ -1721,13 +1721,12 @@ async def list_users_admin(request):
         conn.row_factory = aiosqlite.Row
         cursor = await conn.execute(
             """
-            SELECT id, username, email, role, is_active, approval_status, created_at 
+            SELECT id, username, email, role, is_active, created_at 
             FROM users 
             ORDER BY 
-                CASE approval_status 
-                    WHEN 'pending' THEN 1 
-                    WHEN 'approved' THEN 2 
-                    WHEN 'rejected' THEN 3 
+                CASE is_active 
+                    WHEN 0 THEN 1 
+                    WHEN 1 THEN 2 
                 END,
                 created_at DESC
             """

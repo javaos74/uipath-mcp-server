@@ -270,7 +270,8 @@ class Database:
                 username="admin",
                 email="admin@mydomain.com",
                 password="admin",
-                role="admin"
+                role="admin",
+                is_active=1
             )
             logger.info(f"Created default admin user (ID: {admin_id})")
             logger.warning("⚠️  Default admin account created with username 'admin' and password 'admin'. Please change the password immediately!")
@@ -278,7 +279,7 @@ class Database:
             logger.error(f"Failed to create default admin user: {e}")
 
     async def create_user(
-        self, username: str, email: str, password: str, role: str = "user"
+        self, username: str, email: str, password: str, role: str = "user", is_active = 0 
     ) -> int:
         """Create a new user.
 
@@ -287,6 +288,8 @@ class Database:
             email: Email address
             password: Plain text password (will be hashed)
             role: User role ('user' or 'admin')
+            is_active: Whether the user is active or not
+
 
         Returns:
             User ID
@@ -296,10 +299,10 @@ class Database:
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(
                 """
-                INSERT INTO users (username, email, hashed_password, role)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO users (username, email, hashed_password, role, is_active)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (username, email, hashed_password, role),
+                (username, email, hashed_password, role, is_active),
             )
             await db.commit()
             return cursor.lastrowid
