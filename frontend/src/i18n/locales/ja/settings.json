@@ -54,5 +54,33 @@
       "oauthFailed": "OAuth 資格情報は保存されましたが、トークンの生成に失敗しました。資格情報と UiPath URL を確認してください。",
       "saved": "設定が保存されました"
     }
+  },
+  "password": {
+    "title": "パスワード変更",
+    "description": "アカウントのパスワードを更新します。強力なパスワードを使用してください。",
+    "oldPassword": {
+      "label": "現在のパスワード",
+      "placeholder": "現在のパスワードを入力してください"
+    },
+    "newPassword": {
+      "label": "新しいパスワード",
+      "placeholder": "新しいパスワードを入力してください",
+      "help": "パスワードは6文字以上である必要があります"
+    },
+    "confirmPassword": {
+      "label": "新しいパスワードの確認",
+      "placeholder": "新しいパスワードを再入力してください"
+    },
+    "button": {
+      "change": "パスワードを変更",
+      "changing": "変更中..."
+    },
+    "message": {
+      "success": "パスワードが正常に変更されました"
+    },
+    "error": {
+      "mismatch": "新しいパスワードが一致しません",
+      "tooShort": "パスワードは6文字以上である必要があります"
+    }
   }
 }

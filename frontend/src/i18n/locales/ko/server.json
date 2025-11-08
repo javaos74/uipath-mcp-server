@@ -14,7 +14,9 @@
       "sse": "SSE:",
       "http": "Streamable HTTP:"
     },
-    "addTool": "UiPath 프로세스에서 도구 추가",
+    "addTool": "도구 추가",
+    "addToolFromUiPath": "UiPath 프로세스에서 도구 추가",
+    "addToolFromBuiltin": "내장 도구에서 추가",
     "emptyTools": "아직 도구가 없습니다. UiPath 프로세스에서 도구를 추가하세요!",
     "tool": {
       "process": "프로세스: {{name}}",
@@ -105,6 +107,32 @@
     "error": {
       "loadFailed": "프로세스를 불러오는데 실패했습니다. 설정에서 UiPath 구성을 확인하세요.",
       "selectProcess": "프로세스를 선택하고 도구 이름을 입력하세요"
+    }
+  },
+  "builtinPicker": {
+    "title": "내장 도구에서 추가",
+    "selectTool": "내장 도구 선택",
+    "noTools": "사용 가능한 내장 도구가 없습니다. 관리자에게 문의하세요.",
+    "toolConfig": "도구 설정",
+    "toolName": {
+      "label": "도구 이름",
+      "placeholder": "tool_name",
+      "help": "소문자, 숫자, 밑줄만 사용하세요"
+    },
+    "builtinTool": "내장 도구",
+    "description": {
+      "label": "설명"
+    },
+    "parameters": "매개변수",
+    "paramRequired": "필수",
+    "button": {
+      "create": "도구 생성",
+      "creating": "생성 중..."
+    },
+    "error": {
+      "loadFailed": "내장 도구를 불러오는데 실패했습니다",
+      "selectTool": "내장 도구를 선택하고 도구 이름을 입력하세요",
+      "createFailed": "도구 생성에 실패했습니다"
     }
   },
   "toolEditor": {

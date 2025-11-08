@@ -23,8 +23,24 @@ export default function Layout() {
           </Link>
           
           <nav className="nav">
-            <Link to="/" className="nav-link">{t('common:nav.dashboard', { ns: 'common' })}</Link>
-            <Link to="/settings" className="nav-link">{t('common:nav.settings', { ns: 'common' })}</Link>
+            {user?.role === 'admin' ? (
+              <>
+                <Link to="/admin/users" className="nav-link">
+                  👥 {t('common:nav.users', { ns: 'common' })}
+                </Link>
+                <Link to="/admin/builtin-tools" className="nav-link">
+                  🔧 {t('common:nav.builtinTools', { ns: 'common' })}
+                </Link>
+                <Link to="/settings" className="nav-link">
+                  ⚙️ {t('common:nav.settings', { ns: 'common' })}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/" className="nav-link">{t('common:nav.dashboard', { ns: 'common' })}</Link>
+                <Link to="/settings" className="nav-link">{t('common:nav.settings', { ns: 'common' })}</Link>
+              </>
+            )}
           </nav>
 
           <div className="user-menu">

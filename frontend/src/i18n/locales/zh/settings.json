@@ -54,5 +54,33 @@
       "oauthFailed": "OAuth 凭据已保存，但令牌生成失败。请检查您的凭据和 UiPath URL。",
       "saved": "配置已保存"
     }
+  },
+  "password": {
+    "title": "更改密码",
+    "description": "更新您的账户密码。请使用强密码。",
+    "oldPassword": {
+      "label": "当前密码",
+      "placeholder": "请输入当前密码"
+    },
+    "newPassword": {
+      "label": "新密码",
+      "placeholder": "请输入新密码",
+      "help": "密码长度至少为6个字符"
+    },
+    "confirmPassword": {
+      "label": "确认新密码",
+      "placeholder": "请再次输入新密码"
+    },
+    "button": {
+      "change": "更改密码",
+      "changing": "更改中..."
+    },
+    "message": {
+      "success": "密码已成功更改"
+    },
+    "error": {
+      "mismatch": "新密码不匹配",
+      "tooShort": "密码长度至少为6个字符"
+    }
   }
 }

@@ -76,6 +76,13 @@ class Token(BaseModel):
     user: UserResponse
 
 
+class PasswordChange(BaseModel):
+    """Request model for changing password."""
+
+    old_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=6, description="New password")
+
+
 # ==================== MCP Server Models ====================
 
 
@@ -131,6 +138,9 @@ class ToolCreate(BaseModel):
             }
         ],
     )
+    tool_type: str = Field(
+        default="uipath", description="Tool type: 'uipath' or 'builtin'"
+    )
     uipath_process_name: Optional[str] = Field(
         None, description="UiPath process name to execute (optional)"
     )
@@ -143,6 +153,9 @@ class ToolCreate(BaseModel):
     uipath_folder_id: Optional[str] = Field(
         None, description="UiPath folder ID (optional)"
     )
+    builtin_tool_id: Optional[int] = Field(
+        None, description="Built-in tool ID (for builtin type)"
+    )
 
 
 class ToolUpdate(BaseModel):
@@ -152,10 +165,12 @@ class ToolUpdate(BaseModel):
     input_schema: Optional[Dict[str, Any]] = Field(
         None, description="JSON Schema for tool input"
     )
+    tool_type: Optional[str] = Field(None, description="Tool type")
     uipath_process_name: Optional[str] = Field(None, description="UiPath process name")
     uipath_process_key: Optional[str] = Field(None, description="UiPath process key")
     uipath_folder_path: Optional[str] = Field(None, description="UiPath folder path")
     uipath_folder_id: Optional[str] = Field(None, description="UiPath folder ID")
+    builtin_tool_id: Optional[int] = Field(None, description="Built-in tool ID")
 
 
 class ToolResponse(BaseModel):
@@ -166,10 +181,12 @@ class ToolResponse(BaseModel):
     name: str
     description: str
     input_schema: Dict[str, Any]
+    tool_type: str = "uipath"
     uipath_process_name: Optional[str]
     uipath_process_key: Optional[str]
     uipath_folder_path: Optional[str]
     uipath_folder_id: Optional[str]
+    builtin_tool_id: Optional[int]
     created_at: str
     updated_at: str
 
@@ -193,3 +210,48 @@ class ToolExecuteResponse(BaseModel):
     status: Optional[str] = None
     message: str
     result: Optional[Any] = None
+
+
+# ==================== Built-in Tool Models ====================
+
+
+class BuiltinToolCreate(BaseModel):
+    """Request model for creating a new built-in tool."""
+
+    name: str = Field(..., description="Tool name (must be unique)")
+    description: str = Field(..., description="Tool description")
+    input_schema: Dict[str, Any] = Field(
+        ..., description="JSON Schema for tool input"
+    )
+    python_function: str = Field(
+        ..., description="Python function name or module path"
+    )
+    api_key: Optional[str] = Field(None, description="API key for external service")
+
+
+class BuiltinToolUpdate(BaseModel):
+    """Request model for updating a built-in tool."""
+
+    description: Optional[str] = Field(None, description="Tool description")
+    input_schema: Optional[Dict[str, Any]] = Field(
+        None, description="JSON Schema for tool input"
+    )
+    python_function: Optional[str] = Field(
+        None, description="Python function name or module path"
+    )
+    api_key: Optional[str] = Field(None, description="API key for external service")
+    is_active: Optional[bool] = Field(None, description="Active status")
+
+
+class BuiltinToolResponse(BaseModel):
+    """Response model for built-in tool data."""
+
+    id: int
+    name: str
+    description: str
+    input_schema: Dict[str, Any]
+    python_function: str
+    api_key: Optional[str]
+    is_active: bool
+    created_at: str
+    updated_at: str

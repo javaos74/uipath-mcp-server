@@ -23,6 +23,15 @@ export default function Settings() {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
 
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    old_password: '',
+    new_password: '',
+    confirm_password: '',
+  })
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
   const updateMutation = useMutation({
     mutationFn: authAPI.updateUiPathConfig,
     onSuccess: (data) => {
@@ -57,6 +66,23 @@ export default function Settings() {
     onError: (err: any) => {
       setError(err.response?.data?.error || 'Failed to update configuration')
       setSuccess('')
+    },
+  })
+
+  const changePasswordMutation = useMutation({
+    mutationFn: authAPI.changePassword,
+    onSuccess: () => {
+      setPasswordSuccess(t('password.message.success'))
+      setPasswordError('')
+      setPasswordData({
+        old_password: '',
+        new_password: '',
+        confirm_password: '',
+      })
+    },
+    onError: (err: any) => {
+      setPasswordError(err.response?.data?.error || 'Failed to change password')
+      setPasswordSuccess('')
     },
   })
 
@@ -97,6 +123,29 @@ export default function Settings() {
     }
   }
 
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    // Validate passwords match
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setPasswordError(t('password.error.mismatch'))
+      return
+    }
+
+    // Validate password length
+    if (passwordData.new_password.length < 6) {
+      setPasswordError(t('password.error.tooShort'))
+      return
+    }
+
+    changePasswordMutation.mutate({
+      old_password: passwordData.old_password,
+      new_password: passwordData.new_password,
+    })
+  }
+
   return (
     <div className="settings">
       <h1>{t('title')}</h1>
@@ -119,13 +168,14 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="settings-section">
-        <h2>{t('uipath.title')}</h2>
-        <p className="section-description">
-          {t('uipath.description')}
-        </p>
+      {user?.role !== 'admin' && (
+        <div className="settings-section">
+          <h2>{t('uipath.title')}</h2>
+          <p className="section-description">
+            {t('uipath.description')}
+          </p>
 
-        <form onSubmit={handleSubmit} className="settings-form">
+          <form onSubmit={handleSubmit} className="settings-form">
           <div className="form-group">
             <label htmlFor="uipath_url">{t('uipath.url.label')}</label>
             <input
@@ -253,6 +303,77 @@ export default function Settings() {
             disabled={updateMutation.isPending}
           >
             {updateMutation.isPending ? t('uipath.button.saving') : t('uipath.button.save')}
+          </button>
+        </form>
+        </div>
+      )}
+
+      <div className="settings-section">
+        <h2>{t('password.title')}</h2>
+        <p className="section-description">
+          {t('password.description')}
+        </p>
+
+        <form onSubmit={handlePasswordChange} className="settings-form">
+          <div className="form-group">
+            <label htmlFor="old_password">{t('password.oldPassword.label')}</label>
+            <input
+              id="old_password"
+              type="password"
+              className="input"
+              placeholder={t('password.oldPassword.placeholder')}
+              value={passwordData.old_password}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, old_password: e.target.value })
+              }
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="new_password">{t('password.newPassword.label')}</label>
+            <input
+              id="new_password"
+              type="password"
+              className="input"
+              placeholder={t('password.newPassword.placeholder')}
+              value={passwordData.new_password}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, new_password: e.target.value })
+              }
+              required
+              minLength={6}
+            />
+            <small className="form-help">
+              {t('password.newPassword.help')}
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirm_password">{t('password.confirmPassword.label')}</label>
+            <input
+              id="confirm_password"
+              type="password"
+              className="input"
+              placeholder={t('password.confirmPassword.placeholder')}
+              value={passwordData.confirm_password}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, confirm_password: e.target.value })
+              }
+              required
+              minLength={6}
+            />
+          </div>
+
+          {passwordSuccess && <div className="success">{passwordSuccess}</div>}
+          {passwordError && <div className="error">{passwordError}</div>}
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={changePasswordMutation.isPending}
+          >
+            {changePasswordMutation.isPending ? t('password.button.changing') : t('password.button.change')}
           </button>
         </form>
       </div>

@@ -14,7 +14,9 @@
       "sse": "SSE：",
       "http": "Streamable HTTP："
     },
-    "addTool": "从 UiPath 流程添加工具",
+    "addTool": "添加工具",
+    "addToolFromUiPath": "从 UiPath 流程添加工具",
+    "addToolFromBuiltin": "从内置工具添加",
     "emptyTools": "还没有工具。从您的 UiPath 流程添加工具！",
     "tool": {
       "process": "流程：{{name}}",
@@ -105,6 +107,32 @@
     "error": {
       "loadFailed": "加载流程失败。请在设置中检查您的 UiPath 配置。",
       "selectProcess": "请选择流程并输入工具名称"
+    }
+  },
+  "builtinPicker": {
+    "title": "从内置工具添加",
+    "selectTool": "选择内置工具",
+    "noTools": "没有可用的内置工具。请联系管理员。",
+    "toolConfig": "工具配置",
+    "toolName": {
+      "label": "工具名称",
+      "placeholder": "tool_name",
+      "help": "仅使用小写字母、数字和下划线"
+    },
+    "builtinTool": "内置工具",
+    "description": {
+      "label": "描述"
+    },
+    "parameters": "参数",
+    "paramRequired": "必填",
+    "button": {
+      "create": "创建工具",
+      "creating": "创建中..."
+    },
+    "error": {
+      "loadFailed": "加载内置工具失败",
+      "selectTool": "请选择内置工具并输入工具名称",
+      "createFailed": "创建工具失败"
     }
   },
   "toolEditor": {

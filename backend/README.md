@@ -45,6 +45,17 @@ python -m src.main
 
 서버가 http://localhost:8000 에서 실행됩니다.
 
+## 초기 관리자 계정
+
+데이터베이스가 처음 생성될 때 기본 관리자 계정이 자동으로 생성됩니다:
+
+- **Username**: `admin`
+- **Password**: `admin`
+- **Email**: `admin@mydomain.com`
+- **Role**: `admin`
+
+⚠️ **보안 주의사항**: 첫 로그인 후 반드시 비밀번호를 변경하세요!
+
 ## 테스트
 
 ```bash

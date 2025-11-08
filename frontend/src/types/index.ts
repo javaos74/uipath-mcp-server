@@ -55,10 +55,12 @@ export interface MCPTool {
   name: string
   description: string
   input_schema: Record<string, any>
+  tool_type: 'uipath' | 'builtin'
   uipath_process_name: string | null
   uipath_process_key: string | null
   uipath_folder_path: string | null
   uipath_folder_id: string | null
+  builtin_tool_id: number | null
   created_at: string
   updated_at: string
 }
@@ -67,10 +69,24 @@ export interface MCPToolCreate {
   name: string
   description: string
   input_schema: Record<string, any>
+  tool_type?: 'uipath' | 'builtin'
   uipath_process_name?: string
   uipath_process_key?: string
   uipath_folder_path?: string
   uipath_folder_id?: string
+  builtin_tool_id?: number
+}
+
+export interface BuiltinTool {
+  id: number
+  name: string
+  description: string
+  input_schema: Record<string, any>
+  python_function: string
+  api_key: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface UiPathConfig {

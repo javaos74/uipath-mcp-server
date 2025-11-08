@@ -6,21 +6,25 @@ import enCommon from './locales/en/common.json'
 import enAuth from './locales/en/auth.json'
 import enSettings from './locales/en/settings.json'
 import enServer from './locales/en/server.json'
+import enAdmin from './locales/en/admin.json'
 
 import koCommon from './locales/ko/common.json'
 import koAuth from './locales/ko/auth.json'
 import koSettings from './locales/ko/settings.json'
 import koServer from './locales/ko/server.json'
+import koAdmin from './locales/ko/admin.json'
 
 import zhCommon from './locales/zh/common.json'
 import zhAuth from './locales/zh/auth.json'
 import zhSettings from './locales/zh/settings.json'
 import zhServer from './locales/zh/server.json'
+import zhAdmin from './locales/zh/admin.json'
 
 import jaCommon from './locales/ja/common.json'
 import jaAuth from './locales/ja/auth.json'
 import jaSettings from './locales/ja/settings.json'
 import jaServer from './locales/ja/server.json'
+import jaAdmin from './locales/ja/admin.json'
 
 // Get saved language from localStorage or use browser language
 const savedLanguage = localStorage.getItem('language')
@@ -37,24 +41,28 @@ i18n
         auth: enAuth,
         settings: enSettings,
         server: enServer,
+        admin: enAdmin,
       },
       ko: {
         common: koCommon,
         auth: koAuth,
         settings: koSettings,
         server: koServer,
+        admin: koAdmin,
       },
       zh: {
         common: zhCommon,
         auth: zhAuth,
         settings: zhSettings,
         server: zhServer,
+        admin: zhAdmin,
       },
       ja: {
         common: jaCommon,
         auth: jaAuth,
         settings: jaSettings,
         server: jaServer,
+        admin: jaAdmin,
       },
     },
     lng: defaultLanguage,

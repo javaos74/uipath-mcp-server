@@ -7,7 +7,9 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "settings": "Settings"
+    "settings": "Settings",
+    "users": "Users",
+    "builtinTools": "Built-in Tools"
   },
   "button": {
     "save": "Save",

@@ -1,0 +1,119 @@
+.users-admin {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.users-table-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.users-table thead {
+  background-color: #f8f9fa;
+}
+
+.users-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.users-table td {
+  padding: 16px;
+  border-bottom: 1px solid #dee2e6;
+  font-size: 14px;
+}
+
+.users-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.badge-primary {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+.badge-admin {
+  background-color: #f8d7da;
+  color: #842029;
+}
+
+.badge-user {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.user-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-form label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.user-form .input,
+.user-form select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.user-form .input:focus,
+.user-form select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.user-form small {
+  color: #666;
+  font-size: 12px;
+}
+
+
+.btn-icon.btn-success {
+  color: #28a745;
+}
+
+.btn-icon.btn-success:hover {
+  background-color: #d4edda;
+}

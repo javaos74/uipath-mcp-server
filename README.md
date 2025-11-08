@@ -239,12 +239,23 @@ Available variables:
 - `TOOL_CALL_TIMEOUT` - UiPath tool execution timeout in seconds (default: 600)
 - `LOG_LEVEL` - Logging level (default: INFO)
 
+## Default Admin Account
+
+When the database is first created, a default admin account is automatically created:
+
+- **Username**: `admin`
+- **Password**: `admin`
+- **Email**: `admin@mydomain.com`
+- **Role**: `admin`
+
+⚠️ **Security Warning**: Please change the default password immediately after first login!
+
 ## Usage Guide
 
 ### 1. Register and Login
 1. Access the web UI at `http://localhost:8000`
-2. Register a new account
-3. Login with your credentials
+2. Login with the default admin account (username: `admin`, password: `admin`)
+3. Or register a new account and login with your credentials
 
 ### 2. Configure UiPath
 1. Go to Settings page
