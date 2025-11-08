@@ -121,8 +121,70 @@ class DynamicMCPServer:
                     )
                 ]
 
+            # Check tool type and execute accordingly
+            tool_type = tool.get("tool_type", "uipath")
+            
+            if tool_type == "builtin":
+                # Execute built-in tool
+                logger.info(f"Executing built-in tool: {name}")
+                try:
+                    from .builtin.executor import execute_builtin_tool
+                    
+                    # Get built-in tool details
+                    builtin_tool_id = tool.get("builtin_tool_id")
+                    if not builtin_tool_id:
+                        return [
+                            TextContent(
+                                type="text",
+                                text=json.dumps({
+                                    "success": False,
+                                    "error": "Built-in tool ID not found"
+                                }),
+                            )
+                        ]
+                    
+                    builtin_tool = await self.db.get_builtin_tool(builtin_tool_id)
+                    if not builtin_tool:
+                        return [
+                            TextContent(
+                                type="text",
+                                text=json.dumps({
+                                    "success": False,
+                                    "error": f"Built-in tool with ID {builtin_tool_id} not found"
+                                }),
+                            )
+                        ]
+                    
+                    # Execute the built-in tool
+                    result = await execute_builtin_tool(
+                        python_function=builtin_tool["python_function"],
+                        arguments=arguments,
+                        api_key=builtin_tool.get("api_key")
+                    )
+                    
+                    logger.info(f"Built-in tool execution completed: {name}")
+                    return [
+                        TextContent(
+                            type="text",
+                            text=json.dumps(result, ensure_ascii=False, indent=2),
+                        )
+                    ]
+                    
+                except Exception as e:
+                    logger.error(f"Error executing built-in tool: {e}", exc_info=True)
+                    return [
+                        TextContent(
+                            type="text",
+                            text=json.dumps({
+                                "success": False,
+                                "error": "Built-in tool execution failed",
+                                "message": str(e)
+                            }),
+                        )
+                    ]
+            
             # If tool has UiPath process configured, execute it
-            if tool["uipath_process_name"]:
+            elif tool["uipath_process_name"]:
                 try:
                     # Get user's UiPath credentials if user_id is set
                     uipath_url = None
