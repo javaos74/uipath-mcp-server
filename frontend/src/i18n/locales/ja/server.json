@@ -14,7 +14,9 @@
       "sse": "SSE：",
       "http": "Streamable HTTP："
     },
-    "addTool": "UiPath プロセスからツールを追加",
+    "addTool": "ツールを追加",
+    "addToolFromUiPath": "UiPath プロセスからツールを追加",
+    "addToolFromBuiltin": "組み込みツールから追加",
     "emptyTools": "まだツールがありません。UiPath プロセスからツールを追加してください！",
     "tool": {
       "process": "プロセス：{{name}}",
@@ -105,6 +107,32 @@
     "error": {
       "loadFailed": "プロセスの読み込みに失敗しました。設定で UiPath 設定を確認してください。",
       "selectProcess": "プロセスを選択してツール名を入力してください"
+    }
+  },
+  "builtinPicker": {
+    "title": "組み込みツールから追加",
+    "selectTool": "組み込みツールを選択",
+    "noTools": "利用可能な組み込みツールがありません。管理者にお問い合わせください。",
+    "toolConfig": "ツール設定",
+    "toolName": {
+      "label": "ツール名",
+      "placeholder": "tool_name",
+      "help": "小文字、数字、アンダースコアのみを使用してください"
+    },
+    "builtinTool": "組み込みツール",
+    "description": {
+      "label": "説明"
+    },
+    "parameters": "パラメーター",
+    "paramRequired": "必須",
+    "button": {
+      "create": "ツールを作成",
+      "creating": "作成中..."
+    },
+    "error": {
+      "loadFailed": "組み込みツールの読み込みに失敗しました",
+      "selectTool": "組み込みツールを選択してツール名を入力してください",
+      "createFailed": "ツールの作成に失敗しました"
     }
   },
   "toolEditor": {

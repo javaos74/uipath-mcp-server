@@ -14,7 +14,9 @@
       "sse": "SSE:",
       "http": "Streamable HTTP:"
     },
-    "addTool": "Add Tool from UiPath Process",
+    "addTool": "Add Tool",
+    "addToolFromUiPath": "Add Tool from UiPath Process",
+    "addToolFromBuiltin": "Add Tool from Built-in",
     "emptyTools": "No tools yet. Add a tool from your UiPath processes!",
     "tool": {
       "process": "Process: {{name}}",
@@ -105,6 +107,32 @@
     "error": {
       "loadFailed": "Failed to load processes. Please check your UiPath configuration in Settings.",
       "selectProcess": "Please select a process and enter a tool name"
+    }
+  },
+  "builtinPicker": {
+    "title": "Add Tool from Built-in",
+    "selectTool": "Select a Built-in Tool",
+    "noTools": "No built-in tools available. Contact your administrator.",
+    "toolConfig": "Tool Configuration",
+    "toolName": {
+      "label": "Tool Name",
+      "placeholder": "tool_name",
+      "help": "Use lowercase letters, numbers, and underscores only"
+    },
+    "builtinTool": "Built-in Tool",
+    "description": {
+      "label": "Description"
+    },
+    "parameters": "Parameters",
+    "paramRequired": "Required",
+    "button": {
+      "create": "Create Tool",
+      "creating": "Creating..."
+    },
+    "error": {
+      "loadFailed": "Failed to load built-in tools",
+      "selectTool": "Please select a built-in tool and enter a tool name",
+      "createFailed": "Failed to create tool"
     }
   },
   "toolEditor": {

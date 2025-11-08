@@ -12,7 +12,9 @@ export default function ServerDetail() {
     tenantName: string
     serverName: string
   }>()
+  const [showToolTypeSelector, setShowToolTypeSelector] = useState(false)
   const [showProcessPicker, setShowProcessPicker] = useState(false)
+  const [showBuiltinPicker, setShowBuiltinPicker] = useState(false)
   const [editingTool, setEditingTool] = useState<MCPTool | null>(null)
   const queryClient = useQueryClient()
 
@@ -57,12 +59,38 @@ export default function ServerDetail() {
             </div>
           </div>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowProcessPicker(true)}
-        >
-          + {t('detail.addTool')}
-        </button>
+        <div className="add-tool-dropdown">
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowToolTypeSelector(!showToolTypeSelector)}
+          >
+            + {t('detail.addTool')} ▾
+          </button>
+          {showToolTypeSelector && (
+            <div className="dropdown-menu">
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setShowToolTypeSelector(false)
+                  setShowProcessPicker(true)
+                }}
+              >
+                <span className="dropdown-icon">🤖</span>
+                {t('detail.addToolFromUiPath')}
+              </button>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setShowToolTypeSelector(false)
+                  setShowBuiltinPicker(true)
+                }}
+              >
+                <span className="dropdown-icon">🔧</span>
+                {t('detail.addToolFromBuiltin')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <TokenManager tenantName={tenantName!} serverName={serverName!} />
@@ -77,18 +105,21 @@ export default function ServerDetail() {
             <div key={tool.id} className="tool-card">
               <div className="tool-header">
                 <h3>{tool.name}</h3>
-                {tool.uipath_process_name && (
-                  <div className="tool-badges">
+                <div className="tool-badges">
+                  <span className={`tool-badge tool-badge-type tool-badge-${tool.tool_type}`}>
+                    {tool.tool_type === 'builtin' ? '🔧 Built-in' : '🤖 UiPath'}
+                  </span>
+                  {tool.uipath_process_name && (
                     <span className="tool-badge tool-badge-process">
                       {t('detail.tool.process', { name: tool.uipath_process_name })}
                     </span>
-                    {tool.uipath_folder_path && (
-                      <span className="tool-badge tool-badge-folder">
-                        {t('detail.tool.folder', { path: tool.uipath_folder_path })}
-                      </span>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {tool.uipath_folder_path && (
+                    <span className="tool-badge tool-badge-folder">
+                      {t('detail.tool.folder', { path: tool.uipath_folder_path })}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <p className="tool-description">{tool.description}</p>
@@ -143,6 +174,18 @@ export default function ServerDetail() {
           onClose={() => setShowProcessPicker(false)}
           onSuccess={() => {
             setShowProcessPicker(false)
+            queryClient.invalidateQueries({ queryKey: ['tools', tenantName, serverName] })
+          }}
+        />
+      )}
+
+      {showBuiltinPicker && (
+        <BuiltinToolPicker
+          tenantName={tenantName!}
+          serverName={serverName!}
+          onClose={() => setShowBuiltinPicker(false)}
+          onSuccess={() => {
+            setShowBuiltinPicker(false)
             queryClient.invalidateQueries({ queryKey: ['tools', tenantName, serverName] })
           }}
         />
@@ -266,6 +309,7 @@ function UiPathProcessPicker({
         properties,
         required,
       },
+      tool_type: 'uipath',
       uipath_process_name: selectedProcess.name,
       uipath_process_key: selectedProcess.key || selectedProcess.name,
       uipath_folder_path: selectedFolder?.full_name || selectedFolder?.name || undefined,
@@ -522,6 +566,199 @@ function UiPathProcessPicker({
                     disabled={createMutation.isPending || !toolName || !toolDescription}
                   >
                     {createMutation.isPending ? t('processPicker.button.creating') : t('processPicker.button.create')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
+function BuiltinToolPicker({
+  tenantName,
+  serverName,
+  onClose,
+  onSuccess,
+}: {
+  tenantName: string
+  serverName: string
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const { t } = useTranslation('server')
+  const [selectedBuiltinTool, setSelectedBuiltinTool] = useState<any | null>(null)
+  const [toolName, setToolName] = useState('')
+  const [error, setError] = useState('')
+
+  const { data: builtinToolsData, isLoading, error: loadError } = useQuery({
+    queryKey: ['builtin-tools'],
+    queryFn: async () => {
+      const response = await fetch('/api/builtin-tools?active_only=true', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      })
+      if (!response.ok) throw new Error('Failed to load built-in tools')
+      return response.json()
+    },
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: MCPToolCreate) => toolsAPI.create(tenantName, serverName, data),
+    onSuccess,
+    onError: (err: any) => {
+      setError(err.response?.data?.error || t('builtinPicker.error.createFailed'))
+    },
+  })
+
+  const handleSelectBuiltinTool = (tool: any) => {
+    setSelectedBuiltinTool(tool)
+    // Auto-fill tool name from builtin tool name
+    setToolName(tool.name.toLowerCase().replace(/[^a-z0-9_]/g, '_'))
+  }
+
+  const handleCreateTool = () => {
+    if (!selectedBuiltinTool || !toolName) {
+      setError(t('builtinPicker.error.selectTool'))
+      return
+    }
+
+    const toolData: MCPToolCreate = {
+      name: toolName,
+      description: selectedBuiltinTool.description,
+      input_schema: selectedBuiltinTool.input_schema,
+      tool_type: 'builtin',
+      builtin_tool_id: selectedBuiltinTool.id,
+    }
+
+    createMutation.mutate(toolData)
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+        <h2>{t('builtinPicker.title')}</h2>
+
+        {loadError && (
+          <div className="error">
+            {t('builtinPicker.error.loadFailed')}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="loading"><div className="spinner" /></div>
+        ) : (
+          <div className="builtin-picker">
+            <div className="builtin-list">
+              <h3>{t('builtinPicker.selectTool')}</h3>
+              {!builtinToolsData?.tools || builtinToolsData.tools.length === 0 ? (
+                <p className="empty-message">{t('builtinPicker.noTools')}</p>
+              ) : (
+                <div className="builtin-tools">
+                  {builtinToolsData.tools.map((tool: any) => (
+                    <div
+                      key={tool.id}
+                      className={`builtin-item ${selectedBuiltinTool?.id === tool.id ? 'selected' : ''}`}
+                      onClick={() => handleSelectBuiltinTool(tool)}
+                    >
+                      <div className="builtin-name">
+                        <span className="builtin-icon">🔧</span>
+                        {tool.name}
+                      </div>
+                      {tool.description && (
+                        <div className="builtin-description">{tool.description}</div>
+                      )}
+                      {tool.input_schema?.properties && (
+                        <div className="builtin-params">
+                          {Object.keys(tool.input_schema.properties).length} {t('builtinPicker.parameters')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {selectedBuiltinTool && (
+              <div className="builtin-details">
+                <h3>{t('builtinPicker.toolConfig')}</h3>
+
+                <div className="form-group">
+                  <label>{t('builtinPicker.toolName.label')} *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={toolName}
+                    onChange={(e) => setToolName(e.target.value)}
+                    placeholder={t('builtinPicker.toolName.placeholder')}
+                    required
+                  />
+                  <small>{t('builtinPicker.toolName.help')}</small>
+                </div>
+
+                <div className="form-group">
+                  <label>{t('builtinPicker.builtinTool')}</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={selectedBuiltinTool.name}
+                    disabled
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>{t('builtinPicker.description.label')}</label>
+                  <textarea
+                    className="input"
+                    value={selectedBuiltinTool.description}
+                    rows={2}
+                    disabled
+                  />
+                </div>
+
+                {selectedBuiltinTool.input_schema?.properties && (
+                  <div className="form-group">
+                    <label>{t('builtinPicker.parameters')}</label>
+                    <div className="params-viewer">
+                      {Object.entries(selectedBuiltinTool.input_schema.properties).map(([key, value]: [string, any]) => (
+                        <div key={key} className="param-viewer-item">
+                          <div className="param-name-row">
+                            <code>{key}</code>
+                            <span className="param-type">{value.type}</span>
+                            {selectedBuiltinTool.input_schema.required?.includes(key) && (
+                              <span className="param-required">{t('builtinPicker.paramRequired')}</span>
+                            )}
+                          </div>
+                          {value.description && (
+                            <div className="param-description">{value.description}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {error && <div className="error">{error}</div>}
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={onClose}
+                  >
+                    {t('common:button.cancel', { ns: 'common' })}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleCreateTool}
+                    disabled={createMutation.isPending || !toolName}
+                  >
+                    {createMutation.isPending ? t('builtinPicker.button.creating') : t('builtinPicker.button.create')}
                   </button>
                 </div>
               </div>
