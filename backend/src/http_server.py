@@ -38,6 +38,8 @@ from .models import (
     ServerUpdate,
     ToolCreate,
     ToolUpdate,
+    BuiltinToolCreate,
+    BuiltinToolUpdate,
 )
 from .oauth import exchange_client_credentials_for_token, get_valid_token, get_valid_token
 
@@ -1223,10 +1225,12 @@ async def create_tool(request):
             name=tool.name,
             description=tool.description,
             input_schema=tool.input_schema,
+            tool_type=tool.tool_type,
             uipath_process_name=tool.uipath_process_name,
             uipath_process_key=tool.uipath_process_key,
             uipath_folder_path=tool.uipath_folder_path,
             uipath_folder_id=tool.uipath_folder_id,
+            builtin_tool_id=tool.builtin_tool_id,
         )
 
         # Invalidate MCP server cache to reload tools
@@ -1297,10 +1301,12 @@ async def update_tool(request):
             tool_name=tool_name,
             description=tool_update.description,
             input_schema=tool_update.input_schema,
+            tool_type=tool_update.tool_type,
             uipath_process_name=tool_update.uipath_process_name,
             uipath_process_key=tool_update.uipath_process_key,
             uipath_folder_path=tool_update.uipath_folder_path,
             uipath_folder_id=tool_update.uipath_folder_id,
+            builtin_tool_id=tool_update.builtin_tool_id,
         )
 
         # Invalidate cache
@@ -1343,6 +1349,140 @@ async def delete_tool(request):
         del mcp_servers[key]
 
     return JSONResponse({"message": "Tool deleted"}, status_code=204)
+
+
+# ==================== Built-in Tool Management ====================
+
+
+async def list_builtin_tools(request):
+    """List all built-in tools."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    # Get active_only parameter (default: true)
+    active_only = request.query_params.get("active_only", "true").lower() == "true"
+
+    tools = await db.list_builtin_tools(active_only=active_only)
+    return JSONResponse({"count": len(tools), "tools": tools})
+
+
+async def create_builtin_tool(request):
+    """Create a new built-in tool."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    # Only admin can create built-in tools
+    if user.role != "admin":
+        return JSONResponse(
+            {"error": "Only administrators can create built-in tools"}, status_code=403
+        )
+
+    try:
+        data = await request.json()
+        tool = BuiltinToolCreate(**data)
+
+        # Check if tool exists
+        existing = await db.get_builtin_tool_by_name(tool.name)
+        if existing:
+            return JSONResponse(
+                {"error": f"Built-in tool '{tool.name}' already exists"},
+                status_code=409,
+            )
+
+        # Create tool
+        tool_id = await db.create_builtin_tool(
+            name=tool.name,
+            description=tool.description,
+            input_schema=tool.input_schema,
+            python_function=tool.python_function,
+        )
+
+        created = await db.get_builtin_tool(tool_id)
+        return JSONResponse(created, status_code=201)
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def get_builtin_tool(request):
+    """Get a specific built-in tool."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    tool_id = int(request.path_params["tool_id"])
+    tool = await db.get_builtin_tool(tool_id)
+
+    if not tool:
+        return JSONResponse(
+            {"error": f"Built-in tool with ID {tool_id} not found"}, status_code=404
+        )
+
+    return JSONResponse(tool)
+
+
+async def update_builtin_tool(request):
+    """Update a built-in tool."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    # Only admin can update built-in tools
+    if user.role != "admin":
+        return JSONResponse(
+            {"error": "Only administrators can update built-in tools"}, status_code=403
+        )
+
+    try:
+        tool_id = int(request.path_params["tool_id"])
+        existing = await db.get_builtin_tool(tool_id)
+        if not existing:
+            return JSONResponse(
+                {"error": f"Built-in tool with ID {tool_id} not found"},
+                status_code=404,
+            )
+
+        data = await request.json()
+        tool_update = BuiltinToolUpdate(**data)
+
+        await db.update_builtin_tool(
+            tool_id=tool_id,
+            description=tool_update.description,
+            input_schema=tool_update.input_schema,
+            python_function=tool_update.python_function,
+            is_active=tool_update.is_active,
+        )
+
+        updated = await db.get_builtin_tool(tool_id)
+        return JSONResponse(updated)
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def delete_builtin_tool(request):
+    """Delete a built-in tool."""
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    # Only admin can delete built-in tools
+    if user.role != "admin":
+        return JSONResponse(
+            {"error": "Only administrators can delete built-in tools"}, status_code=403
+        )
+
+    tool_id = int(request.path_params["tool_id"])
+    deleted = await db.delete_builtin_tool(tool_id)
+
+    if not deleted:
+        return JSONResponse(
+            {"error": f"Built-in tool with ID {tool_id} not found"}, status_code=404
+        )
+
+    return JSONResponse({"message": "Built-in tool deleted"}, status_code=204)
 
 
 # ==================== Static Files & SPA ====================
@@ -1442,6 +1582,14 @@ app = Starlette(
             "/api/servers/{tenant_name}/{server_name}/tools/{tool_name}",
             delete_tool,
             methods=["DELETE"],
+        ),
+        # Built-in Tool Management API
+        Route("/api/builtin-tools", list_builtin_tools, methods=["GET"]),
+        Route("/api/builtin-tools", create_builtin_tool, methods=["POST"]),
+        Route("/api/builtin-tools/{tool_id}", get_builtin_tool, methods=["GET"]),
+        Route("/api/builtin-tools/{tool_id}", update_builtin_tool, methods=["PUT"]),
+        Route(
+            "/api/builtin-tools/{tool_id}", delete_builtin_tool, methods=["DELETE"]
         ),
     ],
     on_startup=[startup],

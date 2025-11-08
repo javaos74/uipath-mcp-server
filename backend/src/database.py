@@ -94,14 +94,33 @@ class Database:
                     name TEXT NOT NULL,
                     description TEXT,
                     input_schema TEXT NOT NULL,
+                    tool_type TEXT DEFAULT 'uipath',
                     uipath_process_name TEXT,
                     uipath_process_key TEXT,
                     uipath_folder_path TEXT,
                     uipath_folder_id TEXT,
+                    builtin_tool_id INTEGER,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (server_id) REFERENCES mcp_servers(id) ON DELETE CASCADE,
+                    FOREIGN KEY (builtin_tool_id) REFERENCES builtin_tools(id) ON DELETE SET NULL,
                     UNIQUE(server_id, name)
+                )
+            """
+            )
+
+            # Built-in Tools table
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS builtin_tools (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    description TEXT NOT NULL,
+                    input_schema TEXT NOT NULL,
+                    python_function TEXT NOT NULL,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """
             )
@@ -114,6 +133,24 @@ class Database:
                 await db.commit()
             except aiosqlite.OperationalError:
                 # Column already exists, ignore
+                pass
+
+            # Add tool_type column if it doesn't exist (migration)
+            try:
+                await db.execute(
+                    "ALTER TABLE mcp_tools ADD COLUMN tool_type TEXT DEFAULT 'uipath'"
+                )
+                await db.commit()
+            except aiosqlite.OperationalError:
+                pass
+
+            # Add builtin_tool_id column if it doesn't exist (migration)
+            try:
+                await db.execute(
+                    "ALTER TABLE mcp_tools ADD COLUMN builtin_tool_id INTEGER"
+                )
+                await db.commit()
+            except aiosqlite.OperationalError:
                 pass
 
             # Create indexes for better query performance
@@ -142,6 +179,13 @@ class Database:
                 """
                 CREATE INDEX IF NOT EXISTS idx_mcp_tools_server 
                 ON mcp_tools(server_id)
+            """
+            )
+
+            await db.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_builtin_tools_name 
+                ON builtin_tools(name)
             """
             )
 
@@ -586,10 +630,12 @@ class Database:
         name: str,
         description: str,
         input_schema: Dict[str, Any],
+        tool_type: str = "uipath",
         uipath_process_name: Optional[str] = None,
         uipath_process_key: Optional[str] = None,
         uipath_folder_path: Optional[str] = None,
         uipath_folder_id: Optional[str] = None,
+        builtin_tool_id: Optional[int] = None,
     ) -> int:
         """Add a new tool to an MCP server.
 
@@ -598,10 +644,12 @@ class Database:
             name: Tool name (must be unique within server)
             description: Tool description
             input_schema: JSON Schema for tool input (MCP Tool spec)
+            tool_type: Tool type ('uipath' or 'builtin')
             uipath_process_name: UiPath process name (optional)
             uipath_process_key: UiPath process key (optional)
             uipath_folder_path: UiPath folder path (optional)
             uipath_folder_id: UiPath folder ID (optional)
+            builtin_tool_id: Built-in tool ID (optional)
 
         Returns:
             Tool ID
@@ -610,19 +658,22 @@ class Database:
             cursor = await db.execute(
                 """
                 INSERT INTO mcp_tools 
-                (server_id, name, description, input_schema, 
-                 uipath_process_name, uipath_process_key, uipath_folder_path, uipath_folder_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (server_id, name, description, input_schema, tool_type,
+                 uipath_process_name, uipath_process_key, uipath_folder_path, uipath_folder_id,
+                 builtin_tool_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     server_id,
                     name,
                     description,
                     json.dumps(input_schema),
+                    tool_type,
                     uipath_process_name,
                     uipath_process_key,
                     uipath_folder_path,
                     uipath_folder_id,
+                    builtin_tool_id,
                 ),
             )
             await db.commit()
@@ -652,16 +703,26 @@ class Database:
                     process_key = row["uipath_process_key"]
                 except (KeyError, IndexError):
                     process_key = None
+                try:
+                    tool_type = row["tool_type"]
+                except (KeyError, IndexError):
+                    tool_type = "uipath"
+                try:
+                    builtin_tool_id = row["builtin_tool_id"]
+                except (KeyError, IndexError):
+                    builtin_tool_id = None
                 return {
                     "id": row["id"],
                     "server_id": row["server_id"],
                     "name": row["name"],
                     "description": row["description"],
                     "input_schema": json.loads(row["input_schema"]),
+                    "tool_type": tool_type,
                     "uipath_process_name": row["uipath_process_name"],
                     "uipath_process_key": process_key,
                     "uipath_folder_path": row["uipath_folder_path"],
                     "uipath_folder_id": row["uipath_folder_id"],
+                    "builtin_tool_id": builtin_tool_id,
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
                 }
@@ -689,6 +750,14 @@ class Database:
                     process_key = row["uipath_process_key"]
                 except (KeyError, IndexError):
                     process_key = None
+                try:
+                    tool_type = row["tool_type"]
+                except (KeyError, IndexError):
+                    tool_type = "uipath"
+                try:
+                    builtin_tool_id = row["builtin_tool_id"]
+                except (KeyError, IndexError):
+                    builtin_tool_id = None
                 result.append(
                     {
                         "id": row["id"],
@@ -696,10 +765,12 @@ class Database:
                         "name": row["name"],
                         "description": row["description"],
                         "input_schema": json.loads(row["input_schema"]),
+                        "tool_type": tool_type,
                         "uipath_process_name": row["uipath_process_name"],
                         "uipath_process_key": process_key,
                         "uipath_folder_path": row["uipath_folder_path"],
                         "uipath_folder_id": row["uipath_folder_id"],
+                        "builtin_tool_id": builtin_tool_id,
                         "created_at": row["created_at"],
                         "updated_at": row["updated_at"],
                     }
@@ -712,10 +783,12 @@ class Database:
         tool_name: str,
         description: Optional[str] = None,
         input_schema: Optional[Dict[str, Any]] = None,
+        tool_type: Optional[str] = None,
         uipath_process_name: Optional[str] = None,
         uipath_process_key: Optional[str] = None,
         uipath_folder_path: Optional[str] = None,
         uipath_folder_id: Optional[str] = None,
+        builtin_tool_id: Optional[int] = None,
     ) -> bool:
         """Update a tool.
 
@@ -724,10 +797,12 @@ class Database:
             tool_name: Tool name
             description: New description (optional)
             input_schema: New input schema (optional)
+            tool_type: New tool type (optional)
             uipath_process_name: New UiPath process name (optional)
             uipath_process_key: New UiPath process key (optional)
             uipath_folder_path: New UiPath folder path (optional)
             uipath_folder_id: New UiPath folder ID (optional)
+            builtin_tool_id: New built-in tool ID (optional)
 
         Returns:
             True if updated, False if not found
@@ -741,6 +816,9 @@ class Database:
         if input_schema is not None:
             updates.append("input_schema = ?")
             params.append(json.dumps(input_schema))
+        if tool_type is not None:
+            updates.append("tool_type = ?")
+            params.append(tool_type)
         if uipath_process_name is not None:
             updates.append("uipath_process_name = ?")
             params.append(uipath_process_name)
@@ -753,6 +831,9 @@ class Database:
         if uipath_folder_id is not None:
             updates.append("uipath_folder_id = ?")
             params.append(uipath_folder_id)
+        if builtin_tool_id is not None:
+            updates.append("builtin_tool_id = ?")
+            params.append(builtin_tool_id)
 
         if not updates:
             return False
@@ -782,6 +863,195 @@ class Database:
             cursor = await db.execute(
                 "DELETE FROM mcp_tools WHERE server_id = ? AND name = ?",
                 (server_id, tool_name),
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    # ==================== Built-in Tool Management ====================
+
+    async def create_builtin_tool(
+        self,
+        name: str,
+        description: str,
+        input_schema: Dict[str, Any],
+        python_function: str,
+    ) -> int:
+        """Create a new built-in tool.
+
+        Args:
+            name: Tool name (must be unique)
+            description: Tool description
+            input_schema: JSON Schema for tool input
+            python_function: Python function name or module path
+
+        Returns:
+            Built-in tool ID
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO builtin_tools (name, description, input_schema, python_function)
+                VALUES (?, ?, ?, ?)
+                """,
+                (name, description, json.dumps(input_schema), python_function),
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def get_builtin_tool(self, tool_id: int) -> Optional[Dict[str, Any]]:
+        """Get a built-in tool by ID.
+
+        Args:
+            tool_id: Built-in tool ID
+
+        Returns:
+            Built-in tool data or None if not found
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM builtin_tools WHERE id = ?", (tool_id,)
+            )
+            row = await cursor.fetchone()
+            if row:
+                return {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "description": row["description"],
+                    "input_schema": json.loads(row["input_schema"]),
+                    "python_function": row["python_function"],
+                    "is_active": bool(row["is_active"]),
+                    "created_at": row["created_at"],
+                    "updated_at": row["updated_at"],
+                }
+            return None
+
+    async def get_builtin_tool_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get a built-in tool by name.
+
+        Args:
+            name: Tool name
+
+        Returns:
+            Built-in tool data or None if not found
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM builtin_tools WHERE name = ?", (name,)
+            )
+            row = await cursor.fetchone()
+            if row:
+                return {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "description": row["description"],
+                    "input_schema": json.loads(row["input_schema"]),
+                    "python_function": row["python_function"],
+                    "is_active": bool(row["is_active"]),
+                    "created_at": row["created_at"],
+                    "updated_at": row["updated_at"],
+                }
+            return None
+
+    async def list_builtin_tools(
+        self, active_only: bool = True
+    ) -> List[Dict[str, Any]]:
+        """List all built-in tools.
+
+        Args:
+            active_only: If True, only return active tools
+
+        Returns:
+            List of built-in tool data
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            if active_only:
+                cursor = await db.execute(
+                    "SELECT * FROM builtin_tools WHERE is_active = 1 ORDER BY name"
+                )
+            else:
+                cursor = await db.execute(
+                    "SELECT * FROM builtin_tools ORDER BY name"
+                )
+            rows = await cursor.fetchall()
+            return [
+                {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "description": row["description"],
+                    "input_schema": json.loads(row["input_schema"]),
+                    "python_function": row["python_function"],
+                    "is_active": bool(row["is_active"]),
+                    "created_at": row["created_at"],
+                    "updated_at": row["updated_at"],
+                }
+                for row in rows
+            ]
+
+    async def update_builtin_tool(
+        self,
+        tool_id: int,
+        description: Optional[str] = None,
+        input_schema: Optional[Dict[str, Any]] = None,
+        python_function: Optional[str] = None,
+        is_active: Optional[bool] = None,
+    ) -> bool:
+        """Update a built-in tool.
+
+        Args:
+            tool_id: Built-in tool ID
+            description: New description (optional)
+            input_schema: New input schema (optional)
+            python_function: New python function (optional)
+            is_active: New active status (optional)
+
+        Returns:
+            True if updated, False if not found
+        """
+        updates = []
+        params = []
+
+        if description is not None:
+            updates.append("description = ?")
+            params.append(description)
+        if input_schema is not None:
+            updates.append("input_schema = ?")
+            params.append(json.dumps(input_schema))
+        if python_function is not None:
+            updates.append("python_function = ?")
+            params.append(python_function)
+        if is_active is not None:
+            updates.append("is_active = ?")
+            params.append(1 if is_active else 0)
+
+        if not updates:
+            return False
+
+        updates.append("updated_at = CURRENT_TIMESTAMP")
+        params.append(tool_id)
+
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                f"UPDATE builtin_tools SET {', '.join(updates)} WHERE id = ?",
+                params,
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    async def delete_builtin_tool(self, tool_id: int) -> bool:
+        """Delete a built-in tool.
+
+        Args:
+            tool_id: Built-in tool ID
+
+        Returns:
+            True if deleted, False if not found
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "DELETE FROM builtin_tools WHERE id = ?", (tool_id,)
             )
             await db.commit()
             return cursor.rowcount > 0
