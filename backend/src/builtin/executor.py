@@ -16,7 +16,9 @@ async def execute_builtin_tool(
     Execute a built-in tool by dynamically importing and calling the function.
     
     Args:
-        python_function: Function path (e.g., "builtin.google_search.google_search")
+        python_function: Function path in one of these formats:
+            - "google_search.google_search" (recommended, auto-prefixed with src.builtin)
+            - "src.builtin.google_search.google_search" (full path, also supported)
         arguments: Function arguments
         api_key: Optional API key for external services
         
@@ -25,7 +27,7 @@ async def execute_builtin_tool(
         
     Example:
         result = await execute_builtin_tool(
-            "builtin.google_search.google_search",
+            "google_search.google_search",
             {"q": "Python programming"},
             api_key="YOUR_API_KEY"
         )
@@ -40,6 +42,17 @@ async def execute_builtin_tool(
             raise ValueError(f"Invalid function path: {python_function}")
         
         module_path, function_name = parts
+        
+        # Auto-prefix with src.builtin if not already prefixed
+        if not module_path.startswith("src.builtin."):
+            # Check if it's already a full path starting with src.builtin
+            if module_path.startswith("src.builtin"):
+                # Already has prefix, use as-is
+                pass
+            else:
+                # Add src.builtin prefix
+                module_path = f"src.builtin.{module_path}"
+                logger.debug(f"Auto-prefixed module path: {module_path}")
         
         # Import module
         try:

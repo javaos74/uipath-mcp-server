@@ -19,28 +19,37 @@ async def test_google_search():
     print("Testing google_search built-in tool")
     print("=" * 60)
     
-    # Test 1: Without API key
-    print("\n[Test 1] Executing without API key...")
+    # Test 1: Simplified path without API key
+    print("\n[Test 1] Executing with simplified path (google_search.google_search)...")
     result = await execute_builtin_tool(
-        python_function="src.builtin.google_search.google_search",
+        python_function="google_search.google_search",  # Simplified!
         arguments={"q": "Python programming"},
         api_key=None
     )
     print(f"Result: {result}")
     
-    # Test 2: With mock API key
+    # Test 2: Simplified path with mock API key
     print("\n[Test 2] Executing with mock API key...")
     result = await execute_builtin_tool(
-        python_function="src.builtin.google_search.google_search",
+        python_function="google_search.google_search",  # Simplified!
         arguments={"q": "Machine Learning"},
         api_key="MOCK_API_KEY_12345"
     )
     print(f"Result: {result}")
     
-    # Test 3: Invalid function path
-    print("\n[Test 3] Testing error handling (invalid function)...")
+    # Test 3: Full path (backward compatibility)
+    print("\n[Test 3] Testing full path (backward compatibility)...")
     result = await execute_builtin_tool(
-        python_function="src.builtin.nonexistent.function",
+        python_function="src.builtin.google_search.google_search",  # Full path
+        arguments={"q": "AI Technology"},
+        api_key="MOCK_API_KEY_12345"
+    )
+    print(f"Result: {result}")
+    
+    # Test 4: Invalid function path
+    print("\n[Test 4] Testing error handling (invalid function)...")
+    result = await execute_builtin_tool(
+        python_function="nonexistent.function",  # Simplified invalid path
         arguments={"q": "test"},
         api_key=None
     )

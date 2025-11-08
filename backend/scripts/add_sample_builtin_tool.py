@@ -44,7 +44,7 @@ async def add_sample_tool():
             },
             "required": ["q"]
         },
-        "python_function": "tools.google_search.search",
+        "python_function": "google_search.google_search",  # Simplified path (auto-prefixed with src.builtin)
         "api_key": None  # No API key needed for this example
     }
     

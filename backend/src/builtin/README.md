@@ -104,7 +104,7 @@ Google 검색을 수행하는 샘플 tool입니다.
 **매개변수:**
 - `q` (string, required): 검색 질문
 
-**함수 경로:** `src.builtin.google_search.google_search`
+**함수 경로:** `google_search.google_search` (또는 `src.builtin.google_search.google_search`)
 
 **API 키:** Google Custom Search API 키 (선택사항)
 
