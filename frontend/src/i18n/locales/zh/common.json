@@ -8,6 +8,7 @@
   "nav": {
     "dashboard": "仪表板",
     "settings": "设置",
+    "users": "用户",
     "builtinTools": "内置工具"
   },
   "button": {
