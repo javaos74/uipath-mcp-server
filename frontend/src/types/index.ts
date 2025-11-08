@@ -83,6 +83,7 @@ export interface BuiltinTool {
   description: string
   input_schema: Record<string, any>
   python_function: string
+  api_key: string | null
   is_active: boolean
   created_at: string
   updated_at: string

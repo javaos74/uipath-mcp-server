@@ -219,6 +219,7 @@ class BuiltinToolCreate(BaseModel):
     python_function: str = Field(
         ..., description="Python function name or module path"
     )
+    api_key: Optional[str] = Field(None, description="API key for external service")
 
 
 class BuiltinToolUpdate(BaseModel):
@@ -231,6 +232,7 @@ class BuiltinToolUpdate(BaseModel):
     python_function: Optional[str] = Field(
         None, description="Python function name or module path"
     )
+    api_key: Optional[str] = Field(None, description="API key for external service")
     is_active: Optional[bool] = Field(None, description="Active status")
 
 
@@ -242,6 +244,7 @@ class BuiltinToolResponse(BaseModel):
     description: str
     input_schema: Dict[str, Any]
     python_function: str
+    api_key: Optional[str]
     is_active: bool
     created_at: str
     updated_at: str

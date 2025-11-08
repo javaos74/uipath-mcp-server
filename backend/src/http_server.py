@@ -1423,6 +1423,7 @@ async def create_builtin_tool(request):
             description=tool.description,
             input_schema=tool.input_schema,
             python_function=tool.python_function,
+            api_key=tool.api_key,
         )
 
         created = await db.get_builtin_tool(tool_id)
@@ -1478,6 +1479,7 @@ async def update_builtin_tool(request):
             description=tool_update.description,
             input_schema=tool_update.input_schema,
             python_function=tool_update.python_function,
+            api_key=tool_update.api_key,
             is_active=tool_update.is_active,
         )
 
