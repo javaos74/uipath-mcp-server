@@ -1219,6 +1219,32 @@ async def create_tool(request):
                 status_code=409,
             )
 
+        # Validate tool type and required fields
+        if tool.tool_type == "builtin":
+            if not tool.builtin_tool_id:
+                return JSONResponse(
+                    {"error": "builtin_tool_id is required for builtin tool type"},
+                    status_code=400,
+                )
+            # Verify builtin tool exists and is active
+            builtin_tool = await db.get_builtin_tool(tool.builtin_tool_id)
+            if not builtin_tool:
+                return JSONResponse(
+                    {"error": f"Built-in tool with ID {tool.builtin_tool_id} not found"},
+                    status_code=404,
+                )
+            if not builtin_tool.get("is_active"):
+                return JSONResponse(
+                    {"error": f"Built-in tool '{builtin_tool['name']}' is not active"},
+                    status_code=400,
+                )
+        elif tool.tool_type == "uipath":
+            if not tool.uipath_process_key:
+                return JSONResponse(
+                    {"error": "uipath_process_key is required for uipath tool type"},
+                    status_code=400,
+                )
+
         # Create tool
         tool_id = await db.add_tool(
             server_id=server["id"],
