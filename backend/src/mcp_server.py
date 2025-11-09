@@ -155,11 +155,55 @@ class DynamicMCPServer:
                             )
                         ]
                     
+                    # Get user's UiPath credentials if this is a UiPath tool
+                    uipath_url = None
+                    uipath_access_token = None
+                    if "uipath_" in builtin_tool["python_function"]:
+                        user_data = await self.db.get_user_by_id(self.user_id)
+                        if user_data:
+                            uipath_url = user_data.get("uipath_url")
+                            uipath_access_token = user_data.get("uipath_access_token")
+                            uipath_auth_type = user_data.get("uipath_auth_type", "pat")
+                            
+                            # Validate and refresh token if needed (OAuth only)
+                            if uipath_auth_type == "oauth":
+                                from .oauth import get_valid_token
+                                
+                                client_id = user_data.get("uipath_client_id")
+                                client_secret = user_data.get("uipath_client_secret")
+                                
+                                if uipath_url and client_id and client_secret:
+                                    try:
+                                        # Get valid token (will refresh if expired)
+                                        uipath_access_token = await get_valid_token(
+                                            current_token=uipath_access_token,
+                                            uipath_url=uipath_url,
+                                            client_id=client_id,
+                                            client_secret=client_secret,
+                                        )
+                                        
+                                        # Update token in database if it changed
+                                        if uipath_access_token != user_data.get("uipath_access_token"):
+                                            await self.db.update_user_uipath_config(
+                                                user_id=self.user_id,
+                                                uipath_access_token=uipath_access_token,
+                                            )
+                                            logger.info(f"Refreshed OAuth token for user {self.user_id}")
+                                    except Exception as e:
+                                        logger.error(f"Failed to refresh OAuth token: {e}")
+                                        # Continue with existing token, will fail if actually expired
+                                else:
+                                    logger.warning(f"OAuth mode but missing credentials for user {self.user_id}")
+                            
+                            logger.debug(f"Retrieved UiPath credentials for user {self.user_id}")
+                    
                     # Execute the built-in tool
                     result = await execute_builtin_tool(
                         python_function=builtin_tool["python_function"],
                         arguments=arguments,
-                        api_key=builtin_tool.get("api_key")
+                        api_key=builtin_tool.get("api_key"),
+                        uipath_url=uipath_url,
+                        uipath_access_token=uipath_access_token
                     )
                     
                     logger.info(f"Built-in tool execution completed: {name}")

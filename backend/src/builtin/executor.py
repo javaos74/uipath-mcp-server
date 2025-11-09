@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 async def execute_builtin_tool(
     python_function: str,
     arguments: Dict[str, Any],
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
+    uipath_url: Optional[str] = None,
+    uipath_access_token: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Execute a built-in tool by dynamically importing and calling the function.
@@ -21,6 +23,8 @@ async def execute_builtin_tool(
             - "src.builtin.google_search.google_search" (full path, also supported)
         arguments: Function arguments
         api_key: Optional API key for external services
+        uipath_url: Optional UiPath Orchestrator URL (for UiPath tools)
+        uipath_access_token: Optional UiPath access token (for UiPath tools)
         
     Returns:
         Dictionary containing execution results
@@ -44,13 +48,14 @@ async def execute_builtin_tool(
         module_path, function_name = parts
         
         # Auto-prefix with src.builtin if not already prefixed
-        if not module_path.startswith("src.builtin."):
-            # Check if it's already a full path starting with src.builtin
-            if module_path.startswith("src.builtin"):
-                # Already has prefix, use as-is
-                pass
+        if not module_path.startswith("src.builtin"):
+            # Check if it starts with "builtin." (short form)
+            if module_path.startswith("builtin."):
+                # Replace "builtin." with "src.builtin."
+                module_path = f"src.{module_path}"
+                logger.debug(f"Converted builtin path to: {module_path}")
             else:
-                # Add src.builtin prefix
+                # Add src.builtin prefix for other cases
                 module_path = f"src.builtin.{module_path}"
                 logger.debug(f"Auto-prefixed module path: {module_path}")
         
@@ -89,6 +94,15 @@ async def execute_builtin_tool(
         # Add api_key to arguments if provided
         if api_key:
             arguments["api_key"] = api_key
+        
+        # Add UiPath credentials to arguments if this is a UiPath tool
+        if "uipath_" in module_path:
+            if uipath_url:
+                arguments["uipath_url"] = uipath_url
+                logger.debug(f"Added uipath_url to arguments")
+            if uipath_access_token:
+                arguments["access_token"] = uipath_access_token
+                logger.debug(f"Added access_token to arguments")
         
         # Execute function
         logger.info(f"Calling {function_name} with arguments: {list(arguments.keys())}")
