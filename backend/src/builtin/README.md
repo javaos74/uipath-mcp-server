@@ -1,167 +1,178 @@
-# Built-in Tools
+# Built-in Tools Auto-Registration System
 
-이 디렉토리는 MCP 서버에서 사용할 수 있는 Python 기반 Built-in tool을 포함합니다.
+This directory contains built-in tools that are automatically discovered and registered to the database during initialization.
 
-## 구조
+## How It Works
+
+### 1. Tool Definition
+
+Each Python module in this directory can define a `TOOLS` list with tool definitions:
+
+```python
+# Example: uipath_folder.py
+
+async def get_folders(uipath_url: str, access_token: str, folder_name: str = None):
+    """Get UiPath folders."""
+    # Implementation...
+    pass
+
+TOOLS = [
+    {
+        "name": "uipath_get_folders",
+        "description": "Get UiPath folders, optionally filtered by name.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "folder_name": {
+                    "type": "string",
+                    "description": "Optional folder name to search for"
+                }
+            },
+            "required": []
+        },
+        "function": get_folders  # Reference to the actual function
+    }
+]
+```
+
+### 2. Auto-Discovery
+
+The `builtin_registry.py` module automatically:
+- Scans all Python files in the `builtin/` directory
+- Imports modules and looks for `TOOLS` definitions
+- Extracts function references and converts them to module paths
+
+### 3. Version-Based Migration
+
+The system uses a simple version-based migration to avoid duplicate registrations:
+
+```python
+# In builtin_registry.py
+BUILTIN_TOOLS_VERSION = 1  # Increment when adding/modifying tools
+```
+
+- When the database is initialized, it checks the current version
+- If the version is outdated, it registers/updates all tools
+- Version is stored in the `system_metadata` table
+
+### 4. Database Registration
+
+During `Database.initialize()`:
+1. Creates all necessary tables
+2. Calls `_register_builtin_tools()`
+3. Discovers and registers tools if version is newer
+4. Updates existing tools or creates new ones
+
+## Adding New Built-in Tools
+
+### Step 1: Create a new module
+
+Create a new Python file in `backend/src/builtin/`:
+
+```python
+# backend/src/builtin/my_new_tool.py
+
+async def my_function(param1: str, param2: int = 10):
+    """My new tool function."""
+    # Implementation
+    return {"result": "success"}
+
+TOOLS = [
+    {
+        "name": "my_new_tool",
+        "description": "Description of what this tool does",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "param1": {
+                    "type": "string",
+                    "description": "First parameter"
+                },
+                "param2": {
+                    "type": "integer",
+                    "description": "Second parameter (optional)",
+                    "default": 10
+                }
+            },
+            "required": ["param1"]
+        },
+        "function": my_function
+    }
+]
+```
+
+### Step 2: Increment version
+
+Edit `backend/src/builtin_registry.py`:
+
+```python
+# Increment this when adding/modifying tools
+BUILTIN_TOOLS_VERSION = 2  # Changed from 1 to 2
+```
+
+### Step 3: Restart the application
+
+The tools will be automatically registered on next startup!
+
+## Testing
+
+Test the auto-registration system:
+
+```bash
+python backend/scripts/test_builtin_registry.py
+```
+
+This will:
+1. Discover all tools from builtin modules
+2. Register them to the database
+3. Verify registration
+4. Test idempotency (running twice should not duplicate)
+
+## Current Built-in Tools
+
+### UiPath Folder Tools (2 tools)
+- `uipath_get_folders` - List all folders
+- `uipath_get_folder_id_by_name` - Find folder ID by name
+
+### UiPath Job Tools (3 tools)
+- `uipath_get_jobs_stats` - Job statistics by status
+- `uipath_get_finished_jobs_evolution` - Job completion trends
+- `uipath_get_processes_table` - Process execution summary
+
+### UiPath Queue Tools (2 tools)
+- `uipath_get_queues_health_state` - Queue health status
+- `uipath_get_queues_table` - Queue items summary
+
+### UiPath Schedule Tools (1 tool)
+- `uipath_get_process_schedules` - Process schedule information
+
+## Architecture
 
 ```
 builtin/
-├── __init__.py          # 모듈 초기화
-├── executor.py          # Tool 실행 엔진
-├── google_search.py     # Google 검색 tool
-└── README.md           # 이 파일
+├── README.md                    # This file
+├── executor.py                  # Tool execution engine
+├── uipath_folder.py            # Folder management tools
+├── uipath_job.py               # Job monitoring tools
+├── uipath_queue.py             # Queue monitoring tools
+├── uipath_schedule.py          # Schedule monitoring tools
+└── sample_apis/                # Sample API responses
+
+builtin_registry.py             # Auto-discovery and registration
+database.py                     # Database with version management
 ```
 
-## Built-in Tool 추가하기
+## Benefits
 
-### 1. Python 함수 작성
+1. **No Manual Registration**: Just add a Python file with `TOOLS` definition
+2. **Version Control**: Automatic migration based on version number
+3. **Idempotent**: Safe to run multiple times
+4. **Type Safe**: Function references ensure tools exist
+5. **Easy Maintenance**: Update tools by editing Python files and incrementing version
 
-새로운 tool을 추가하려면 이 디렉토리에 Python 파일을 생성하고 async 함수를 작성합니다:
+## Notes
 
-```python
-# my_tool.py
-import logging
-from typing import Dict, Any, Optional
-
-logger = logging.getLogger(__name__)
-
-async def my_tool_function(
-    param1: str,
-    param2: int,
-    api_key: Optional[str] = None
-) -> Dict[str, Any]:
-    """
-    Tool 설명.
-    
-    Args:
-        param1: 첫 번째 매개변수
-        param2: 두 번째 매개변수
-        api_key: API 키 (선택사항, builtin_tools 테이블에서 자동 전달)
-        
-    Returns:
-        실행 결과를 포함하는 딕셔너리
-    """
-    try:
-        # Tool 로직 구현
-        result = f"Processed: {param1} with {param2}"
-        
-        return {
-            "success": True,
-            "result": result
-        }
-    except Exception as e:
-        logger.error(f"Error in my_tool: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
-```
-
-### 2. __init__.py에 등록
-
-```python
-# __init__.py
-from .my_tool import my_tool_function
-
-__all__ = ["google_search", "my_tool_function"]
-```
-
-### 3. 데이터베이스에 등록
-
-관리자 페이지(`/admin/builtin-tools`)에서 tool을 등록하거나 스크립트를 사용:
-
-```python
-tool_data = {
-    "name": "my_tool",
-    "description": "내 도구 설명",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "param1": {
-                "type": "string",
-                "description": "첫 번째 매개변수"
-            },
-            "param2": {
-                "type": "integer",
-                "description": "두 번째 매개변수"
-            }
-        },
-        "required": ["param1", "param2"]
-    },
-    "python_function": "src.builtin.my_tool.my_tool_function",
-    "api_key": None  # 필요한 경우 API 키 설정
-}
-
-tool_id = await db.create_builtin_tool(**tool_data)
-```
-
-## 기존 Tool
-
-### google_search
-
-Google 검색을 수행하는 샘플 tool입니다.
-
-**매개변수:**
-- `q` (string, required): 검색 질문
-
-**함수 경로:** `google_search.google_search` (또는 `src.builtin.google_search.google_search`)
-
-**API 키:** Google Custom Search API 키 (선택사항)
-
-**사용 예시:**
-```json
-{
-  "q": "Python programming"
-}
-```
-
-**응답 예시:**
-```json
-{
-  "success": true,
-  "query": "Python programming",
-  "results": [
-    {
-      "title": "Sample result",
-      "link": "https://example.com",
-      "snippet": "Result description"
-    }
-  ]
-}
-```
-
-## Tool 실행 흐름
-
-1. MCP 클라이언트가 tool 호출
-2. `mcp_server.py`가 tool 정보 조회
-3. `tool_type`이 'builtin'인 경우:
-   - `builtin_tool_id`로 built-in tool 정보 조회
-   - `executor.execute_builtin_tool()` 호출
-   - Python 함수 동적 import 및 실행
-   - 결과 반환
-
-## 테스트
-
-Built-in tool을 테스트하려면:
-
-```bash
-python backend/scripts/test_builtin_tool.py
-```
-
-## 주의사항
-
-1. **함수 시그니처**: 모든 built-in tool 함수는 `api_key` 매개변수를 선택적으로 받아야 합니다.
-2. **반환 값**: 항상 딕셔너리를 반환하고 `success` 필드를 포함해야 합니다.
-3. **에러 처리**: 예외를 적절히 처리하고 에러 정보를 반환해야 합니다.
-4. **비동기**: 가능하면 async 함수로 작성하세요 (동기 함수도 지원됨).
-5. **로깅**: 적절한 로깅을 추가하여 디버깅을 용이하게 하세요.
-
-## API 키 관리
-
-Built-in tool이 외부 서비스를 사용하는 경우:
-
-1. 관리자 페이지에서 tool 편집
-2. API Key 필드에 키 입력
-3. 함수 실행 시 `api_key` 매개변수로 자동 전달
-
-API 키는 데이터베이스에 저장되며, tool 실행 시에만 함수에 전달됩니다.
+- Files starting with `_` or named `__init__.py` or `executor.py` are ignored
+- The `function` field should reference the actual Python function
+- The system automatically converts function references to module paths (e.g., `uipath_folder.get_folders`)
+- Existing tools are updated, not duplicated

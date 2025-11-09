@@ -130,6 +130,17 @@ class Database:
             """
             )
 
+            # System metadata table for tracking versions and migrations
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS system_metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
             # Add uipath_process_key column if it doesn't exist (migration)
             try:
                 await db.execute(
@@ -232,6 +243,9 @@ class Database:
         # Create default admin user if database was just created
         if not db_exists:
             await self._create_default_admin()
+        
+        # Register built-in tools (uses version-based migration)
+        await self._register_builtin_tools()
 
     # ==================== User Management ====================
 
@@ -277,6 +291,11 @@ class Database:
             logger.warning("⚠️  Default admin account created with username 'admin' and password 'admin'. Please change the password immediately!")
         except Exception as e:
             logger.error(f"Failed to create default admin user: {e}")
+
+    async def _register_builtin_tools(self):
+        """Register built-in tools using version-based migration system."""
+        from .builtin_registry import ensure_builtin_tools_registered
+        await ensure_builtin_tools_registered(self)
 
     async def create_user(
         self, username: str, email: str, password: str, role: str = "user", is_active = 0 
@@ -1402,3 +1421,78 @@ class Database:
             )
             await db.commit()
             return cursor.rowcount > 0
+
+    # ==================== System Metadata Management ====================
+
+    async def get_builtin_tools_version(self) -> int:
+        """Get the current built-in tools version from system metadata.
+        
+        Returns:
+            Current version number (0 if not set)
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT value FROM system_metadata WHERE key = ?",
+                ("builtin_tools_version",)
+            )
+            row = await cursor.fetchone()
+            if row:
+                try:
+                    return int(row["value"])
+                except (ValueError, TypeError):
+                    return 0
+            return 0
+
+    async def set_builtin_tools_version(self, version: int) -> None:
+        """Set the built-in tools version in system metadata.
+        
+        Args:
+            version: Version number to set
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                INSERT OR REPLACE INTO system_metadata (key, value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                """,
+                ("builtin_tools_version", str(version))
+            )
+            await db.commit()
+
+    async def get_metadata(self, key: str) -> Optional[str]:
+        """Get a metadata value by key.
+        
+        Args:
+            key: Metadata key
+            
+        Returns:
+            Metadata value or None if not found
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT value FROM system_metadata WHERE key = ?",
+                (key,)
+            )
+            row = await cursor.fetchone()
+            if row:
+                return row["value"]
+            return None
+
+    async def set_metadata(self, key: str, value: str) -> None:
+        """Set a metadata value.
+        
+        Args:
+            key: Metadata key
+            value: Metadata value
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                INSERT OR REPLACE INTO system_metadata (key, value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                """,
+                (key, value)
+            )
+            await db.commit()
