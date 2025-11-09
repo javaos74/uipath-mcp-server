@@ -219,6 +219,13 @@ export default function Settings() {
                 <span>{t('uipath.authType.oauth')}</span>
               </label>
             </div>
+            {authType === 'oauth' && (
+              <small className="form-help">
+                <strong>{t('uipath.authType.requiredScopes')}</strong>
+                <br />
+                OR.Jobs OR.Folders OR.Execution OR.Monitoring OR.Robot OR.Queue
+              </small>
+            )}
           </div>
 
           {authType === 'pat' ? (

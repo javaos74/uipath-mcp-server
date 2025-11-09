@@ -21,7 +21,8 @@
     "authType": {
       "label": "Authentication Type",
       "pat": "Personal Access Token (PAT)",
-      "oauth": "OAuth 2.0 (Client Credentials)"
+      "oauth": "OAuth 2.0 (Client Credentials)",
+      "requiredScopes": "Required Orchestrator Scopes:"
     },
     "pat": {
       "label": "UiPath Personal Access Token (PAT)",

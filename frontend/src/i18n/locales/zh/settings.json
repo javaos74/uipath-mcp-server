@@ -21,7 +21,8 @@
     "authType": {
       "label": "认证类型",
       "pat": "个人访问令牌（PAT）",
-      "oauth": "OAuth 2.0（客户端凭据）"
+      "oauth": "OAuth 2.0（客户端凭据）",
+      "requiredScopes": "必需的 Orchestrator 范围："
     },
     "pat": {
       "label": "UiPath 个人访问令牌（PAT）",
