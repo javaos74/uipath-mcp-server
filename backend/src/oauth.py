@@ -55,11 +55,7 @@ async def exchange_client_credentials_for_token(
     effective_scope = scope or os.getenv(
         "UIPATH_OAUTH_SCOPE",
         # Read scopes for listing folders, releases, and jobs
-        "OR.Jobs OR.Folders OR.Execution OR.Monitoring OR.Robot OR.Queue",
-    )
-    effective_audience = audience or os.getenv(
-        "UIPATH_OAUTH_AUDIENCE",
-        "https://orchestrator.uipath.com",
+        "OR.Jobs OR.Folders OR.Execution OR.Monitoring OR.Robots OR.Queues",
     )
 
     form: Dict[str, Any] = {
@@ -68,10 +64,6 @@ async def exchange_client_credentials_for_token(
         "client_secret": client_secret,
         "scope": effective_scope,
     }
-
-    # Only include audience if set; some servers reject unknown params
-    if effective_audience:
-        form["audience"] = effective_audience
 
     last_error: Optional[str] = None
 

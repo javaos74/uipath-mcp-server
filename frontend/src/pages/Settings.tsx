@@ -223,7 +223,7 @@ export default function Settings() {
               <small className="form-help">
                 <strong>{t('uipath.authType.requiredScopes')}</strong>
                 <br />
-                OR.Jobs OR.Folders OR.Execution OR.Monitoring OR.Robot OR.Queue
+                OR.Jobs OR.Folders OR.Execution OR.Monitoring OR.Robots OR.Queues
               </small>
             )}
           </div>
