@@ -65,6 +65,11 @@ frontend/build/
 .next/
 out/
 
+# Root-level Node.js files (should only be in frontend/)
+/package.json
+/package-lock.json
+/node_modules/
+
 # Test files
 test_*.db
 *.test.db
