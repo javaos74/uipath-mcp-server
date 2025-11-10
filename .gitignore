@@ -68,3 +68,8 @@ out/
 # Test files
 test_*.db
 *.test.db
+
+# Development repositories (keep locally but don't track)
+/mcp-python-sdk/
+/uipath-python/
+/uipath-mcp-python/
