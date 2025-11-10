@@ -57,6 +57,9 @@ server.log
 *.nupkg
 uipath.json
 
+# Sample API responses (for development reference only)
+backend/src/builtin/sample_apis/
+
 # Node.js / Frontend
 node_modules/
 frontend/node_modules/
