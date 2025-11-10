@@ -76,6 +76,7 @@ out/
 # Test files
 test_*.db
 *.test.db
+test_*.sh
 
 # Development repositories (keep locally but don't track)
 /mcp-python-sdk/
