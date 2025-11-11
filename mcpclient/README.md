@@ -25,7 +25,7 @@ pip install -r requirements.txt
 chainlit run app.py -w
 ```
 
-2. 브라우저에서 `http://localhost:8000` 접속
+2. 브라우저에서 `http://localhost:8080` 접속
 
 3. 설정 화면에서:
    - `/settings` 명령으로 OpenAI API 키 입력
@@ -140,16 +140,35 @@ OPENAI_API_KEY=sk-proj-your-actual-api-key-here
 chainlit run app.py -w
 ```
 
-기본 포트: `http://localhost:8000`
+기본 포트: `http://localhost:8080` (`.chainlitrc`에서 설정됨)
 
 ### 포트 변경
+
+**방법 1: `.chainlitrc` 파일 수정 (권장)**
+```toml
+[run]
+port = 8080  # 원하는 포트 번호로 변경
+```
+
+**방법 2: 커맨드 라인 옵션**
 ```bash
-chainlit run app.py -w -p 8080
+chainlit run app.py --port 9000
+```
+
+**방법 3: 환경 변수**
+```bash
+CHAINLIT_PORT=9000 chainlit run app.py
 ```
 
 ### 외부 접속 허용
 ```bash
-chainlit run app.py -w -h 0.0.0.0
+chainlit run app.py --host 0.0.0.0
+```
+
+또는 `.chainlitrc`에서:
+```toml
+[run]
+host = "0.0.0.0"
 ```
 
 ## 사용 방법
@@ -196,12 +215,13 @@ python -m uvicorn src.main:app --port 3000
 **원인:**
 - MCP 서버가 실행되지 않음
 - 잘못된 URL
-- 포트 충돌
+- 포트 충돌 (Chainlit은 8080, Backend는 3000 사용)
 
 **해결:**
 1. MCP 서버가 실행 중인지 확인
 2. URL이 정확한지 확인 (특히 `/sse` 경로)
-3. 포트 번호 확인
+3. 포트 번호 확인 (Chainlit: 8080, Backend: 3000)
+4. 포트 충돌 시 `.chainlitrc`에서 포트 변경
 
 ### 인증 오류
 

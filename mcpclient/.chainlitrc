@@ -17,6 +17,16 @@ allow_origins = ["*"]
 # Follow symlink for asset mount (see https://github.com/Chainlit/chainlit/issues/317)
 # follow_symlink = false
 
+[run]
+# Host to bind to (default: 0.0.0.0)
+host = "0.0.0.0"
+
+# Port to bind to (default: 8000)
+port = 8080
+
+# Watch for file changes and reload (default: false)
+watch = true
+
 [features]
 # Show the prompt playground
 prompt_playground = true
