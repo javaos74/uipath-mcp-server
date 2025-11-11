@@ -1,0 +1,21 @@
+{
+  "openai_api_key": "",
+  "mcpServers": {
+    "uipath-mcp-sample": {
+      "url": "https://uipath-mcp.azurewebsites.net/mcp/UiPath/DemoMCP/sse",
+      "token": "your_bearer_token_here",
+      "headers": {},
+      "timeout": 30,
+      "sse_read_timeout": 300,
+      "enabled": false
+    },
+    "local-mcp-server": {
+      "url": "http://localhost:3000/mcp/your-tenant/your-server/sse",
+      "token": "your_bearer_token_here",
+      "headers": {},
+      "timeout": 30,
+      "sse_read_timeout": 300,
+      "enabled": false
+    }
+  }
+}
