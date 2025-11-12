@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "runtime": {
+    "name": "python",
+    "version": "3.11"
+  },
+  "startup": {
+    "command": "python -m src.main",
+    "workingDirectory": "backend"
+  },
+  "environmentVariables": {
+    "API_HOST": "0.0.0.0",
+    "API_PORT": "8000",
+    "WEBSITES_PORT": "8000",
+    "DB_PATH": "/app/database/mcp_servers.db",
+    "LOG_LEVEL": "INFO",
+    "SCM_DO_BUILD_DURING_DEPLOYMENT": "true"
+  },
+  "_comments": {
+    "WEBSITES_PORT": "Azure가 컨테이너에 연결할 포트 (Docker 배포 시 필수)",
+    "API_PORT": "애플리케이션이 실제로 리스닝할 포트 (보통 WEBSITES_PORT와 동일)",
+    "DB_PATH": "Docker 배포 시 /app/database, Python 직접 배포 시 /home/site/wwwroot/backend/database"
+  }
+}
