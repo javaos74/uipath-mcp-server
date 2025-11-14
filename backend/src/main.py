@@ -22,32 +22,8 @@ def main():
         load_dotenv(root_env)
         logging.info(f"Loaded environment from {root_env}")
 
-    # Create logs directory if it doesn't exist
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
-    log_file = log_dir / "mcp_server.log"
-
-    # --- Logging configuration ---
-    log_format = "%(asctime)s - %(name)-15s - %(levelname)-8s - %(message)s"
-    # File handler via basicConfig
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format=log_format,
-        filename=log_file,
-        filemode="w",
-    )
-    # Console handler to surface DEBUG logs in terminal
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(logging.Formatter(log_format))
-    root_logger.addHandler(console_handler)
-    # Make our modules verbose
-    logging.getLogger("uipath-mcp-server").setLevel(logging.DEBUG)
-    logging.getLogger("mcp").setLevel(logging.DEBUG)
-    logging.getLogger("uipath_client").setLevel(logging.DEBUG)
-    logging.getLogger("oauth").setLevel(logging.DEBUG)
+    # Logging is now configured in http_server.py to work with reload=True
+    # This ensures logs are written to file even after auto-reload
 
     host = os.getenv("API_HOST", "0.0.0.0")
     port = int(os.getenv("API_PORT", "8000"))

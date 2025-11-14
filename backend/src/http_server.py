@@ -10,6 +10,7 @@ from mcp.server.streamable_http import StreamableHTTPServerTransport
 import json
 import logging
 import os
+import sys
 import anyio
 import asyncio
 from pathlib import Path
@@ -18,6 +19,45 @@ from typing import Optional
 
 from .mcp_server import DynamicMCPServer
 from .database import Database
+
+# ============================================================================
+# Logging Configuration (applied on every reload)
+# ============================================================================
+# Create logs directory if it doesn't exist
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+log_file = log_dir / "mcp_server.log"
+
+# Configure logging format
+log_format = "%(asctime)s - %(name)-15s - %(levelname)-8s - %(message)s"
+
+# Only configure if not already configured (avoid duplicate handlers on reload)
+root_logger = logging.getLogger()
+if not root_logger.handlers:
+    # File handler
+    file_handler = logging.FileHandler(log_file, mode="a")  # Append mode
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging.Formatter(log_format))
+    root_logger.addHandler(file_handler)
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(logging.Formatter(log_format))
+    root_logger.addHandler(console_handler)
+    
+    # Set root logger level
+    root_logger.setLevel(logging.DEBUG)
+    
+    # Make our modules verbose
+    logging.getLogger("uipath-mcp-server").setLevel(logging.DEBUG)
+    logging.getLogger("mcp").setLevel(logging.DEBUG)
+    logging.getLogger("uipath_client").setLevel(logging.DEBUG)
+    logging.getLogger("oauth").setLevel(logging.DEBUG)
+    
+    logging.info("=" * 80)
+    logging.info("Logging configured: file=%s, level=DEBUG", log_file)
+    logging.info("=" * 80)
 
 # Configure logging
 logger = logging.getLogger(__name__)
