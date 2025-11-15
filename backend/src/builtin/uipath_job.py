@@ -99,7 +99,7 @@ async def get_jobs_stats(
 async def get_finished_jobs_evolution(
     uipath_url: str,
     access_token: str,
-    organization_unit_id: int,
+    folder_id: int,
     time_frame_minutes: int = 1440,
 ) -> List[Dict[str, Any]]:
     """Get finished jobs evolution over time from UiPath Orchestrator.
@@ -110,6 +110,7 @@ async def get_finished_jobs_evolution(
     Args:
         uipath_url: UiPath Orchestrator URL (e.g., https://orchestrator.local)
         access_token: UiPath access token for authentication
+        folder_id: Folder ID (organization unit ID)
         time_frame_minutes: Time frame in minutes (default: 1440 = 24 hours)
         
     Returns:
@@ -147,7 +148,7 @@ async def get_finished_jobs_evolution(
         "authorization": f"Bearer {access_token}",
         "content-type": "application/json",
         "x-uipath-orchestrator": "true",
-        "x-uipath-organizationunitid": str(organization_unit_id),
+        "x-uipath-organizationunitid": str(folder_id),
     }
     
     params = {
@@ -185,7 +186,7 @@ async def get_finished_jobs_evolution(
 async def get_processes_table(
     uipath_url: str,
     access_token: str,
-    organization_unit_id: int,
+    folder_id: int,
     time_frame_minutes: int = 1440,
     page_no: int = 1,
     page_size: int = 100,
@@ -198,6 +199,7 @@ async def get_processes_table(
     Args:
         uipath_url: UiPath Orchestrator URL (e.g., https://orchestrator.local)
         access_token: UiPath access token for authentication
+        folder_id: Folder ID (organization unit ID)
         time_frame_minutes: Time frame in minutes (default: 1440 = 24 hours)
         page_no: Page number (default: 1)
         page_size: Number of items per page (default: 100)
@@ -244,7 +246,7 @@ async def get_processes_table(
         "authorization": f"Bearer {access_token}",
         "content-type": "application/json",
         "x-uipath-orchestrator": "true",
-        "x-uipath-organizationunitid" : str(organization_unit_id),
+        "x-uipath-organizationunitid" : str(folder_id),
     }
 
     params = {
@@ -306,12 +308,12 @@ TOOLS = [
                     "description": "Time frame in minutes (default: 1440 = 24 hours)",
                     "default": 1440
                 },
-                "organization_unit_id": {
+                "folder_id": {
                     "type": "integer",
-                    "description": "Organization unit ID (required)"
+                    "description": "Folder ID (organization unit ID) - required"
                 }
             },
-            "required": [ "organization_unit_id"]
+            "required": ["folder_id"]
         },
         "function": get_finished_jobs_evolution
     },
@@ -336,12 +338,12 @@ TOOLS = [
                     "description": "Number of items per page (default: 100)",
                     "default": 100
                 },
-                "organization_unit_id": {
+                "folder_id": {
                     "type": "integer",
-                    "description": "Organization unit ID (required)"
+                    "description": "Folder ID (organization unit ID) - required"
                 }
             },
-            "required": [ "organization_unit_id"]
+            "required": ["folder_id"]
         },
         "function": get_processes_table
     }

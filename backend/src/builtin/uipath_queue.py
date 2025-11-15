@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 async def get_queues_health_state(
     uipath_url: str,
     access_token: str,
-    organization_unit_id: int,
+    folder_id: int,
     time_frame_minutes: int = 1440,
 ) -> Dict[str, Any]:
     """Get queues health state from UiPath Orchestrator.
@@ -30,8 +30,8 @@ async def get_queues_health_state(
     Args:
         uipath_url: UiPath Orchestrator URL (e.g., https://orchestrator.local)
         access_token: UiPath access token for authentication
+        folder_id: Folder ID (organization unit ID)
         time_frame_minutes: Time frame in minutes (default: 1440 = 24 hours)
-        organization_unit_id: Organization unit ID (optional)
         
     Returns:
         Dictionary containing queues health state data
@@ -70,7 +70,7 @@ async def get_queues_health_state(
         "authorization": f"Bearer {access_token}",
         "content-type": "application/json",
         "x-uipath-orchestrator": "true",
-        "x-uipath-organizationunitid": str(organization_unit_id),
+        "x-uipath-organizationunitid": str(folder_id),
     }
     
     body = {
@@ -108,7 +108,7 @@ async def get_queues_health_state(
 async def get_queues_table(
     uipath_url: str,
     access_token: str,
-    organization_unit_id: int,
+    folder_id: int,
     time_frame_minutes: int = 1440,
     page_no: int = 1,
     page_size: int = 100,
@@ -121,10 +121,10 @@ async def get_queues_table(
     Args:
         uipath_url: UiPath Orchestrator URL (e.g., https://orchestrator.local)
         access_token: UiPath access token for authentication
+        folder_id: Folder ID (organization unit ID)
         time_frame_minutes: Time frame in minutes (default: 1440 = 24 hours)
         page_no: Page number (default: 1)
         page_size: Number of items per page (default: 100)
-        organization_unit_id: Organization unit ID (optional)
         
     Returns:
         Dictionary containing queues data and total count
@@ -163,7 +163,7 @@ async def get_queues_table(
         "authorization": f"Bearer {access_token}",
         "content-type": "application/json",
         "x-uipath-orchestrator": "true",
-        "x-uipath-organizationunitid": str(organization_unit_id),   
+        "x-uipath-organizationunitid": str(folder_id),   
     }
     
     params = {
@@ -215,12 +215,12 @@ TOOLS = [
                     "description": "Time frame in minutes (default: 1440 = 24 hours)",
                     "default": 1440
                 },
-                "organization_unit_id": {
+                "folder_id": {
                     "type": "integer",
-                    "description": "Organization unit ID (required)"
+                    "description": "Folder ID (organization unit ID) - required"
                 }
             },
-            "required": ["organization_unit_id"]
+            "required": ["folder_id"]
         },
         "function": get_queues_health_state
     },
@@ -245,12 +245,12 @@ TOOLS = [
                     "description": "Number of items per page (default: 100)",
                     "default": 100
                 },
-                "organization_unit_id": {
+                "folder_id": {
                     "type": "integer",
-                    "description": "Organization unit ID (required)"
+                    "description": "Folder ID (organization unit ID) - required"
                 }
             },
-            "required": [ "organization_unit_id"]
+            "required": ["folder_id"]
         },
         "function": get_queues_table
     }

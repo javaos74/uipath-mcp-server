@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 async def get_process_schedules(
     uipath_url: str,
     access_token: str,
-    organization_unit_id: int,
+    folder_id: int,
     top: int = 100,
 ) -> List[Dict[str, Any]]:
     """Get process schedules from UiPath Orchestrator.
@@ -29,7 +29,7 @@ async def get_process_schedules(
     Args:
         uipath_url: UiPath Orchestrator URL (e.g., https://orchestrator.local)
         access_token: UiPath access token for authentication
-        organization_unit_id: Organization unit ID (folder ID) - required
+        folder_id: Folder ID (organization unit ID) - required
         top: Maximum number of schedules to return (default: 100)
         
     Returns:
@@ -62,7 +62,7 @@ async def get_process_schedules(
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
         "x-uipath-orchestrator": "true",
-        "x-uipath-organizationunitid": str(organization_unit_id),
+        "x-uipath-organizationunitid": str(folder_id),
     }
     
     params = {
@@ -75,7 +75,7 @@ async def get_process_schedules(
         verify_ssl = "uipath.com" in base_url.lower()
         
         async with httpx.AsyncClient(verify=verify_ssl, timeout=30.0) as client:
-            logger.info(f"Fetching process schedules from: {api_url} (org unit: {organization_unit_id})")
+            logger.info(f"Fetching process schedules from: {api_url} (folder: {folder_id})")
             response = await client.get(api_url, headers=headers, params=params)
             response.raise_for_status()
             
@@ -119,9 +119,9 @@ TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "organization_unit_id": {
+                "folder_id": {
                     "type": "integer",
-                    "description": "Organization unit ID (folder ID) - required"
+                    "description": "Folder ID (organization unit ID) - required"
                 },
                 "top": {
                     "type": "integer",
@@ -129,7 +129,7 @@ TOOLS = [
                     "default": 100
                 }
             },
-            "required": ["organization_unit_id"]
+            "required": ["folder_id"]
         },
         "function": get_process_schedules
     }
