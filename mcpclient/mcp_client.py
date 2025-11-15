@@ -84,7 +84,7 @@ class MCPServer:
 
         headers = self.config.get("headers", {})
         timeout = self.config.get("timeout", 30)
-        sse_read_timeout = self.config.get("sse_read_timeout", 300)
+        sse_read_timeout = self.config.get("sse_read_timeout", 3600)  # Default: 1 hour for long-running operations
 
         # Create auth if token is provided
         auth = None
@@ -207,8 +207,23 @@ class MCPServer:
         """Clean up server resources"""
         async with self._cleanup_lock:
             try:
-                await self.exit_stack.aclose()
-                self.session = None
+                # Close session first if it exists
+                if self.session:
+                    try:
+                        # Give the session a chance to close gracefully
+                        self.session = None
+                    except Exception as session_error:
+                        logger.warning(f"Error closing session for {self.name}: {session_error}")
+                
+                # Close the exit stack (this closes SSE connection and other resources)
+                try:
+                    await self.exit_stack.aclose()
+                except GeneratorExit:
+                    # This is expected when cleaning up async generators
+                    logger.debug(f"GeneratorExit during cleanup of {self.name} (expected)")
+                except Exception as stack_error:
+                    logger.warning(f"Error closing exit stack for {self.name}: {stack_error}")
+                
                 logger.info(f"Cleaned up server: {self.name}")
             except Exception as e:
                 logger.error(f"Error during cleanup of server {self.name}: {e}")
@@ -272,6 +287,11 @@ class MCPClientManager:
             self.servers[name] = server
         except Exception as e:
             logger.error(f"Failed to add server {name}: {e}")
+            # Ensure cleanup is called on initialization failure
+            try:
+                await server.cleanup()
+            except Exception as cleanup_error:
+                logger.warning(f"Error during cleanup of failed server {name}: {cleanup_error}")
             raise
 
     async def remove_server(self, name: str) -> None:
