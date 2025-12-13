@@ -509,7 +509,7 @@ TOOLS = [
             "properties": {
                 "upload_url": {
                     "type": "string",
-                    "description": "Pre-signed upload URL from uipath_get_storage_bucket_upload_url - required"
+                    "description": "Pre-signed upload URL from uipath_get_storage_bucket_upload_url"
                 },
                 "local_file_path": {
                     "type": "string",
@@ -521,19 +521,19 @@ TOOLS = [
                     "default": "application/octet-stream"
                 }
             },
-            "required": ["upload_url", "local_file_path"]
+            "required": ["upload_url", "local_file_path", "content_type"]
         },
         "function": upload_file_to_storage_bucket
     },
     {
         "name": "uipath_get_storage_buckets",
-        "description": "Get UiPath storage buckets, optionally filtered by name. Storage buckets are used to store files and documents that can be accessed by automation processes.",
+        "description": "Get UiPath storage buckets contain id, name and description, optionally filtered by name. ",
         "input_schema": {
             "type": "object",
             "properties": {
                 "folder_id": {
                     "type": "integer",
-                    "description": "Folder ID (organization unit ID) - required"
+                    "description": "Folder ID (organization unit ID)"
                 },
                 "bucket_name": {
                     "type": "string",
@@ -556,13 +556,13 @@ TOOLS = [
     },
     {
         "name": "uipath_get_storage_bucket_by_name",
-        "description": "Get storage bucket details by exact bucket name. Returns bucket information including ID, identifier, and folder count.",
+        "description": "Get storage bucket details  by exact bucket name. Returns bucket information including ID, identifier, and folder count.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "folder_id": {
                     "type": "integer",
-                    "description": "Folder ID (organization unit ID) - required"
+                    "description": "Folder ID (organization unit ID)"
                 },
                 "bucket_name": {
                     "type": "string",
