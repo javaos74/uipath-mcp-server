@@ -13,7 +13,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Built-in tools version - increment this when adding/modifying tools
-BUILTIN_TOOLS_VERSION = 3
+BUILTIN_TOOLS_VERSION = 6
 
 
 async def discover_builtin_tools() -> List[Dict[str, Any]]:

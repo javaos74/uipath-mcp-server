@@ -1,6 +1,6 @@
 [project]
 name = "uipath-onpremise-mcp-server"
-version = "0.2.5"
+version = "0.2.6"
 description = "UiPath OnPremise MCP Server with multiple endpoints"
 authors = [{ name = "Charles Kim", email = "hyungsoo.kim@uipath.com" }]
 dependencies = [
