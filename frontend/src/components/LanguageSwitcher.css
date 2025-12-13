@@ -1,48 +1,39 @@
 .language-switcher {
   display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.lang-button {
-  display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.current-flag {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.lang-select {
   padding: 6px 12px;
   border: 1px solid #ddd;
   border-radius: 6px;
   background: white;
   cursor: pointer;
-  transition: all 0.2s;
   font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  outline: none;
+  min-width: 120px;
 }
 
-.lang-button:hover {
-  background: #f5f5f5;
+.lang-select:hover {
   border-color: #999;
 }
 
-.lang-button.active {
-  background: #007bff;
-  color: white;
+.lang-select:focus {
   border-color: #007bff;
-}
-
-.lang-button .flag {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.lang-button .label {
-  font-weight: 500;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
 }
 
 @media (max-width: 768px) {
-  .lang-button .label {
-    display: none;
-  }
-  
-  .lang-button {
-    padding: 8px;
+  .lang-select {
+    min-width: 80px;
+    padding: 6px 8px;
   }
 }

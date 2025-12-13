@@ -244,6 +244,7 @@ export default function Settings() {
                 onChange={(e) =>
                   setFormData({ ...formData, uipath_access_token: e.target.value })
                 }
+                autoComplete="new-password"
               />
               <small className="form-help">
                 {user?.has_uipath_token
@@ -268,6 +269,7 @@ export default function Settings() {
                   onChange={(e) =>
                     setOauthData({ ...oauthData, client_id: e.target.value })
                   }
+                  autoComplete="off"
                 />
                 <small className="form-help">
                   {user?.uipath_client_id
@@ -291,6 +293,7 @@ export default function Settings() {
                   onChange={(e) =>
                     setOauthData({ ...oauthData, client_secret: e.target.value })
                   }
+                  autoComplete="new-password"
                 />
                 <small className="form-help">
                   {user?.has_oauth_credentials

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { ChangeEvent } from 'react'
 import './LanguageSwitcher.css'
 
 export default function LanguageSwitcher() {
@@ -11,23 +12,27 @@ export default function LanguageSwitcher() {
     { code: 'ja', label: '日本語', flag: '🇯🇵' },
   ]
 
-  const handleLanguageChange = (langCode: string) => {
-    i18n.changeLanguage(langCode)
+  const handleLanguageChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    i18n.changeLanguage(e.target.value)
   }
+
+  const currentLang = languages.find(lang => lang.code === i18n.language)
 
   return (
     <div className="language-switcher">
-      {languages.map((lang) => (
-        <button
-          key={lang.code}
-          className={`lang-button ${i18n.language === lang.code ? 'active' : ''}`}
-          onClick={() => handleLanguageChange(lang.code)}
-          title={lang.label}
-        >
-          <span className="flag">{lang.flag}</span>
-          <span className="label">{lang.label}</span>
-        </button>
-      ))}
+      <span className="current-flag">{currentLang?.flag}</span>
+      <select
+        className="lang-select"
+        value={i18n.language}
+        onChange={handleLanguageChange}
+        aria-label="Select language"
+      >
+        {languages.map((lang) => (
+          <option key={lang.code} value={lang.code}>
+            {lang.flag} {lang.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }

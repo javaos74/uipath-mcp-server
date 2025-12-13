@@ -35,7 +35,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Skip redirect for login/register endpoints (they return 401 for invalid credentials)
+    const isAuthEndpoint = error.config?.url?.startsWith('/auth/login') || 
+                           error.config?.url?.startsWith('/auth/register')
+    
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       window.location.href = '/login'

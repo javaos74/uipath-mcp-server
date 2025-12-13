@@ -25,7 +25,15 @@ export default function Login() {
       setAuth(response.user, response.access_token)
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed')
+      const serverError = err.response?.data?.error || ''
+      // Map server error messages to translation keys
+      if (serverError.includes('Invalid username or password')) {
+        setError(t('login.error.invalidCredentials'))
+      } else if (serverError.includes('pending')) {
+        setError(t('login.error.pendingApproval'))
+      } else {
+        setError(t('login.error.failed'))
+      }
     } finally {
       setLoading(false)
     }
@@ -45,9 +53,13 @@ export default function Login() {
               type="text"
               className="input"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value)
+                setError('')
+              }}
               required
               autoFocus
+              autoComplete="off"
             />
           </div>
 
@@ -58,8 +70,12 @@ export default function Login() {
               type="password"
               className="input"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setError('')
+              }}
               required
+              autoComplete="new-password"
             />
           </div>
 
