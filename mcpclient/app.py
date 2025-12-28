@@ -161,17 +161,21 @@ async def main(message: cl.Message):
         return
     
     # Handle file uploads
-    files_content = ""
+    files_info = ""
     if message.elements:
-        files_content = await process_uploaded_files(message.elements)
+        files_info = await process_uploaded_files(message.elements)
+        
+        # Notify user that files are saved
+        if files_info:
+            await cl.Message(
+                content=f"📁 **파일이 저장되었습니다:**\n\n{files_info}\n\n파일은 `upload/` 폴더에 저장되었으며, 필요 시 도구를 통해 처리할 수 있습니다."
+            ).send()
     
     # Get message history
     message_history = cl.user_session.get("message_history", [])
     
-    # Add user message to history
+    # Add user message to history (without file content)
     user_message = message.content
-    if files_content:
-        user_message += f"\n\n[업로드된 파일 내용]\n{files_content}"
     
     message_history.append({
         "role": "user",
@@ -543,29 +547,50 @@ async def start_new_chat():
 
 
 async def process_uploaded_files(elements: List[Any]) -> str:
-    """Process uploaded files"""
-    files_content = []
+    """Process uploaded files - save to upload folder and return file info"""
+    import shutil
+    from pathlib import Path
+    
+    # Create upload directory if it doesn't exist
+    upload_dir = Path("upload")
+    upload_dir.mkdir(exist_ok=True)
+    
+    files_info = []
     
     for element in elements:
         # Check if it's a file-like element
-        if hasattr(element, 'path') and hasattr(element, 'name'):
+        if hasattr(element, "path") and hasattr(element, "name"):
             try:
-                # Read file content
-                with open(element.path, "r", encoding="utf-8") as f:
-                    content = f.read()
-                files_content.append(f"파일명: {element.name}\n내용:\n{content}\n")
-            except UnicodeDecodeError:
-                # Try binary file
-                try:
-                    with open(element.path, "rb") as f:
-                        content = f.read()
-                    files_content.append(f"파일명: {element.name}\n(바이너리 파일, {len(content)} bytes)\n")
-                except Exception as e:
-                    files_content.append(f"파일명: {element.name}\n오류: {str(e)}\n")
+                source_path = Path(element.path)
+                dest_path = upload_dir / element.name
+                
+                # Copy file to upload directory (overwrite if exists)
+                shutil.copy2(source_path, dest_path)
+                
+                # Get file info
+                file_size = dest_path.stat().st_size
+                
+                # Format size
+                if file_size < 1024:
+                    size_str = f"{file_size} bytes"
+                elif file_size < 1024 * 1024:
+                    size_str = f"{file_size / 1024:.2f} KB"
+                else:
+                    size_str = f"{file_size / (1024 * 1024):.2f} MB"
+                
+                files_info.append(
+                    f"파일명: {element.name}\n"
+                    f"크기: {size_str}\n"
+                    f"저장 경로: upload/{element.name}"
+                )
+                
+                logger.info(f"File saved: upload/{element.name} ({size_str})")
+                
             except Exception as e:
-                files_content.append(f"파일명: {element.name}\n오류: {str(e)}\n")
+                files_info.append(f"파일명: {element.name}\n오류: {str(e)}")
+                logger.error(f"Failed to save file {element.name}: {e}")
     
-    return "\n---\n".join(files_content)
+    return "\n---\n".join(files_info)
 
 
 if __name__ == "__main__":

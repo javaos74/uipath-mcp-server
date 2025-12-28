@@ -7,7 +7,7 @@ import logging
 import warnings
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse
-from uipath import UiPath
+from uipath.platform import UiPath
 
 # Suppress SSL warnings for self-signed certificates
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")

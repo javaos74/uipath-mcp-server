@@ -144,7 +144,7 @@ async def test_sdk_directly():
     print("="*60)
     
     try:
-        from uipath import UiPath
+        from uipath.platform import UiPath
         
         sdk = UiPath()
         print("✓ UiPath SDK initialized")
