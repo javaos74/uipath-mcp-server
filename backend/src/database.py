@@ -178,6 +178,15 @@ class Database:
             except aiosqlite.OperationalError:
                 pass
 
+            # Add source_package column to builtin_tools if it doesn't exist (migration)
+            try:
+                await db.execute(
+                    "ALTER TABLE builtin_tools ADD COLUMN source_package TEXT"
+                )
+                await db.commit()
+            except aiosqlite.OperationalError:
+                pass
+
             # Migrate existing data: set tool_type to 'uipath' for NULL values
             try:
                 await db.execute(
@@ -1009,6 +1018,7 @@ class Database:
         input_schema: Dict[str, Any],
         python_function: str,
         api_key: Optional[str] = None,
+        source_package: Optional[str] = None,
     ) -> int:
         """Create a new built-in tool.
 
@@ -1018,6 +1028,7 @@ class Database:
             input_schema: JSON Schema for tool input
             python_function: Python function name or module path
             api_key: Optional API key for external service calls
+            source_package: Source package name (e.g., mcp_builtin_xxx)
 
         Returns:
             Built-in tool ID
@@ -1025,10 +1036,10 @@ class Database:
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(
                 """
-                INSERT INTO builtin_tools (name, description, input_schema, python_function, api_key)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO builtin_tools (name, description, input_schema, python_function, api_key, source_package)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (name, description, json.dumps(input_schema), python_function, api_key),
+                (name, description, json.dumps(input_schema), python_function, api_key, source_package),
             )
             await db.commit()
             return cursor.lastrowid
@@ -1049,22 +1060,29 @@ class Database:
             )
             row = await cursor.fetchone()
             if row:
-                try:
-                    api_key = row["api_key"]
-                except (KeyError, IndexError):
-                    api_key = None
-                return {
-                    "id": row["id"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "input_schema": json.loads(row["input_schema"]),
-                    "python_function": row["python_function"],
-                    "api_key": api_key,
-                    "is_active": bool(row["is_active"]),
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                }
+                return self._row_to_builtin_tool(row)
             return None
+
+    def _row_to_builtin_tool(self, row) -> Dict[str, Any]:
+        """Convert a database row to builtin tool dict."""
+        def safe_get(key, default=None):
+            try:
+                return row[key]
+            except (KeyError, IndexError):
+                return default
+        
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "description": row["description"],
+            "input_schema": json.loads(row["input_schema"]),
+            "python_function": row["python_function"],
+            "api_key": safe_get("api_key"),
+            "source_package": safe_get("source_package"),
+            "is_active": bool(row["is_active"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
 
     async def get_builtin_tool_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         """Get a built-in tool by name.
@@ -1082,21 +1100,7 @@ class Database:
             )
             row = await cursor.fetchone()
             if row:
-                try:
-                    api_key = row["api_key"]
-                except (KeyError, IndexError):
-                    api_key = None
-                return {
-                    "id": row["id"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "input_schema": json.loads(row["input_schema"]),
-                    "python_function": row["python_function"],
-                    "api_key": api_key,
-                    "is_active": bool(row["is_active"]),
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                }
+                return self._row_to_builtin_tool(row)
             return None
 
     async def list_builtin_tools(
@@ -1121,24 +1125,7 @@ class Database:
                     "SELECT * FROM builtin_tools ORDER BY name"
                 )
             rows = await cursor.fetchall()
-            result = []
-            for row in rows:
-                try:
-                    api_key = row["api_key"]
-                except (KeyError, IndexError):
-                    api_key = None
-                result.append({
-                    "id": row["id"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "input_schema": json.loads(row["input_schema"]),
-                    "python_function": row["python_function"],
-                    "api_key": api_key,
-                    "is_active": bool(row["is_active"]),
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                })
-            return result
+            return [self._row_to_builtin_tool(row) for row in rows]
 
     async def update_builtin_tool(
         self,
@@ -1148,6 +1135,7 @@ class Database:
         python_function: Optional[str] = None,
         api_key: Optional[str] = None,
         is_active: Optional[bool] = None,
+        source_package: Optional[str] = None,
     ) -> bool:
         """Update a built-in tool.
 
@@ -1158,6 +1146,7 @@ class Database:
             python_function: New python function (optional)
             api_key: New API key (optional)
             is_active: New active status (optional)
+            source_package: Source package name (optional)
 
         Returns:
             True if updated, False if not found
@@ -1180,6 +1169,9 @@ class Database:
         if is_active is not None:
             updates.append("is_active = ?")
             params.append(1 if is_active else 0)
+        if source_package is not None:
+            updates.append("source_package = ?")
+            params.append(source_package)
 
         if not updates:
             return False
@@ -1211,216 +1203,72 @@ class Database:
             await db.commit()
             return cursor.rowcount > 0
 
-    # ==================== Built-in Tool Management ====================
-
-    async def create_builtin_tool(
-        self,
-        name: str,
-        description: str,
-        input_schema: Dict[str, Any],
-        python_function: str,
-        api_key: Optional[str] = None,
-    ) -> int:
-        """Create a new built-in tool.
+    async def delete_builtin_tools_by_source_package(self, source_package: str) -> int:
+        """Delete all built-in tools from a specific source package.
 
         Args:
-            name: Tool name (must be unique)
-            description: Tool description
-            input_schema: JSON Schema for tool input
-            python_function: Python function name or module path
-            api_key: Optional API key for external service calls
+            source_package: Source package name (e.g., mcp_builtin_xxx)
 
         Returns:
-            Built-in tool ID
+            Number of tools deleted
         """
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(
-                """
-                INSERT INTO builtin_tools (name, description, input_schema, python_function, api_key)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (name, description, json.dumps(input_schema), python_function, api_key),
+                "DELETE FROM builtin_tools WHERE source_package = ?",
+                (source_package,)
             )
             await db.commit()
-            return cursor.lastrowid
+            return cursor.rowcount
 
-    async def get_builtin_tool(self, tool_id: int) -> Optional[Dict[str, Any]]:
-        """Get a built-in tool by ID.
+    async def get_external_package_version(self, package_name: str) -> Optional[str]:
+        """Get the stored version of an external package.
 
         Args:
-            tool_id: Built-in tool ID
+            package_name: Package name (e.g., mcp_builtin_xxx)
 
         Returns:
-            Built-in tool data or None if not found
+            Version string or None if not found
+        """
+        return await self.get_metadata(f"ext_pkg:{package_name}")
+
+    async def set_external_package_version(self, package_name: str, version: str) -> None:
+        """Set the version of an external package.
+
+        Args:
+            package_name: Package name (e.g., mcp_builtin_xxx)
+            version: Version string
+        """
+        await self.set_metadata(f"ext_pkg:{package_name}", version)
+
+    async def delete_external_package_version(self, package_name: str) -> None:
+        """Delete the stored version of an external package.
+
+        Args:
+            package_name: Package name (e.g., mcp_builtin_xxx)
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "DELETE FROM system_metadata WHERE key = ?",
+                (f"ext_pkg:{package_name}",)
+            )
+            await db.commit()
+
+    async def get_all_external_package_versions(self) -> Dict[str, str]:
+        """Get all stored external package versions.
+
+        Returns:
+            Dictionary of package_name -> version
         """
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
-                "SELECT * FROM builtin_tools WHERE id = ?", (tool_id,)
+                "SELECT key, value FROM system_metadata WHERE key LIKE 'ext_pkg:%'"
             )
-            row = await cursor.fetchone()
-            if row:
-                try:
-                    api_key = row["api_key"]
-                except (KeyError, IndexError):
-                    api_key = None
-                return {
-                    "id": row["id"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "input_schema": json.loads(row["input_schema"]),
-                    "python_function": row["python_function"],
-                    "api_key": api_key,
-                    "is_active": bool(row["is_active"]),
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                }
-            return None
-
-    async def get_builtin_tool_by_name(self, name: str) -> Optional[Dict[str, Any]]:
-        """Get a built-in tool by name.
-
-        Args:
-            name: Tool name
-
-        Returns:
-            Built-in tool data or None if not found
-        """
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            cursor = await db.execute(
-                "SELECT * FROM builtin_tools WHERE name = ?", (name,)
-            )
-            row = await cursor.fetchone()
-            if row:
-                try:
-                    api_key = row["api_key"]
-                except (KeyError, IndexError):
-                    api_key = None
-                return {
-                    "id": row["id"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "input_schema": json.loads(row["input_schema"]),
-                    "python_function": row["python_function"],
-                    "api_key": api_key,
-                    "is_active": bool(row["is_active"]),
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                }
-            return None
-
-    async def list_builtin_tools(
-        self, active_only: bool = True
-    ) -> List[Dict[str, Any]]:
-        """List all built-in tools.
-
-        Args:
-            active_only: If True, only return active tools
-
-        Returns:
-            List of built-in tool data
-        """
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            if active_only:
-                cursor = await db.execute(
-                    "SELECT * FROM builtin_tools WHERE is_active = 1 ORDER BY name"
-                )
-            else:
-                cursor = await db.execute(
-                    "SELECT * FROM builtin_tools ORDER BY name"
-                )
             rows = await cursor.fetchall()
-            result = []
-            for row in rows:
-                try:
-                    api_key = row["api_key"]
-                except (KeyError, IndexError):
-                    api_key = None
-                result.append({
-                    "id": row["id"],
-                    "name": row["name"],
-                    "description": row["description"],
-                    "input_schema": json.loads(row["input_schema"]),
-                    "python_function": row["python_function"],
-                    "api_key": api_key,
-                    "is_active": bool(row["is_active"]),
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                })
-            return result
-
-    async def update_builtin_tool(
-        self,
-        tool_id: int,
-        description: Optional[str] = None,
-        input_schema: Optional[Dict[str, Any]] = None,
-        python_function: Optional[str] = None,
-        api_key: Optional[str] = None,
-        is_active: Optional[bool] = None,
-    ) -> bool:
-        """Update a built-in tool.
-
-        Args:
-            tool_id: Built-in tool ID
-            description: New description (optional)
-            input_schema: New input schema (optional)
-            python_function: New python function (optional)
-            api_key: New API key (optional)
-            is_active: New active status (optional)
-
-        Returns:
-            True if updated, False if not found
-        """
-        updates = []
-        params = []
-
-        if description is not None:
-            updates.append("description = ?")
-            params.append(description)
-        if input_schema is not None:
-            updates.append("input_schema = ?")
-            params.append(json.dumps(input_schema))
-        if python_function is not None:
-            updates.append("python_function = ?")
-            params.append(python_function)
-        if api_key is not None:
-            updates.append("api_key = ?")
-            params.append(api_key if api_key else None)
-        if is_active is not None:
-            updates.append("is_active = ?")
-            params.append(1 if is_active else 0)
-
-        if not updates:
-            return False
-
-        updates.append("updated_at = CURRENT_TIMESTAMP")
-        params.append(tool_id)
-
-        async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(
-                f"UPDATE builtin_tools SET {', '.join(updates)} WHERE id = ?",
-                params,
-            )
-            await db.commit()
-            return cursor.rowcount > 0
-
-    async def delete_builtin_tool(self, tool_id: int) -> bool:
-        """Delete a built-in tool.
-
-        Args:
-            tool_id: Built-in tool ID
-
-        Returns:
-            True if deleted, False if not found
-        """
-        async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(
-                "DELETE FROM builtin_tools WHERE id = ?", (tool_id,)
-            )
-            await db.commit()
-            return cursor.rowcount > 0
+            return {
+                row["key"].replace("ext_pkg:", ""): row["value"]
+                for row in rows
+            }
 
     # ==================== System Metadata Management ====================
 
