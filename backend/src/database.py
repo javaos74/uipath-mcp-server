@@ -187,6 +187,32 @@ class Database:
             except aiosqlite.OperationalError:
                 pass
 
+            # Migration: Delete legacy builtin_tools without source_package
+            # These are old format tools that need to be re-registered from external packages
+            try:
+                import logging
+                logger = logging.getLogger(__name__)
+                cursor = await db.execute(
+                    "SELECT COUNT(*) FROM builtin_tools WHERE source_package IS NULL"
+                )
+                count = await cursor.fetchone()
+                if count and count[0] > 0:
+                    await db.execute(
+                        "DELETE FROM builtin_tools WHERE source_package IS NULL"
+                    )
+                    await db.commit()
+                    logger.info(f"Migration: Deleted {count[0]} legacy builtin_tools without source_package")
+                    # Also clear old version to force re-registration
+                    await db.execute(
+                        "DELETE FROM system_metadata WHERE key = 'builtin_tools_version'"
+                    )
+                    await db.commit()
+                    logger.info("Migration: Cleared builtin_tools_version for fresh registration")
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Migration warning (legacy builtin cleanup): {e}")
+
             # Migrate existing data: set tool_type to 'uipath' for NULL values
             try:
                 await db.execute(
