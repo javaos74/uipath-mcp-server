@@ -202,12 +202,16 @@ class Database:
                     )
                     await db.commit()
                     logger.info(f"Migration: Deleted {count[0]} legacy builtin_tools without source_package")
-                    # Also clear old version to force re-registration
+                    # Clear old version to force re-registration
                     await db.execute(
                         "DELETE FROM system_metadata WHERE key = 'builtin_tools_version'"
                     )
+                    # Also clear external package versions to force re-sync
+                    await db.execute(
+                        "DELETE FROM system_metadata WHERE key LIKE 'ext_pkg:%'"
+                    )
                     await db.commit()
-                    logger.info("Migration: Cleared builtin_tools_version for fresh registration")
+                    logger.info("Migration: Cleared builtin_tools_version and ext_pkg versions for fresh registration")
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
