@@ -6,6 +6,9 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+# External package prefix
+EXTERNAL_PACKAGE_PREFIX = "mcp_builtin_"
+
 
 async def execute_builtin_tool(
     python_function: str,
@@ -19,8 +22,9 @@ async def execute_builtin_tool(
     
     Args:
         python_function: Function path in one of these formats:
-            - "google_search.google_search" (recommended, auto-prefixed with src.builtin)
-            - "src.builtin.google_search.google_search" (full path, also supported)
+            - "google_search.google_search" (auto-prefixed with src.builtin)
+            - "src.builtin.google_search.google_search" (full internal path)
+            - "mcp_builtin_mycompany.my_tool" (external package, used as-is)
         arguments: Function arguments
         api_key: Optional API key for external services
         uipath_url: Optional UiPath Orchestrator URL (for UiPath tools)
@@ -30,10 +34,17 @@ async def execute_builtin_tool(
         Dictionary containing execution results
         
     Example:
+        # Internal tool
         result = await execute_builtin_tool(
             "google_search.google_search",
             {"q": "Python programming"},
             api_key="YOUR_API_KEY"
+        )
+        
+        # External package tool
+        result = await execute_builtin_tool(
+            "mcp_builtin_mycompany.tools.my_tool",
+            {"param1": "value"}
         )
     """
     try:
@@ -47,17 +58,21 @@ async def execute_builtin_tool(
         
         module_path, function_name = parts
         
-        # Auto-prefix with src.builtin if not already prefixed
-        if not module_path.startswith("src.builtin"):
-            # Check if it starts with "builtin." (short form)
-            if module_path.startswith("builtin."):
-                # Replace "builtin." with "src.builtin."
-                module_path = f"src.{module_path}"
-                logger.debug(f"Converted builtin path to: {module_path}")
-            else:
-                # Add src.builtin prefix for other cases
-                module_path = f"src.builtin.{module_path}"
-                logger.debug(f"Auto-prefixed module path: {module_path}")
+        # Determine module path based on prefix
+        if module_path.startswith(EXTERNAL_PACKAGE_PREFIX):
+            # External package: use as-is
+            logger.debug(f"External package detected: {module_path}")
+        elif module_path.startswith("src.builtin"):
+            # Already has full internal path
+            logger.debug(f"Full internal path: {module_path}")
+        elif module_path.startswith("builtin."):
+            # Short form: builtin.xxx -> src.builtin.xxx
+            module_path = f"src.{module_path}"
+            logger.debug(f"Converted builtin path to: {module_path}")
+        else:
+            # Default: assume internal builtin
+            module_path = f"src.builtin.{module_path}"
+            logger.debug(f"Auto-prefixed module path: {module_path}")
         
         # Import module
         try:

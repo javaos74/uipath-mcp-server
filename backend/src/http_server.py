@@ -1597,6 +1597,34 @@ async def delete_builtin_tool(request):
     return JSONResponse({"message": "Built-in tool deleted"}, status_code=204)
 
 
+async def rediscover_builtin_tools(request):
+    """Force re-discovery and registration of all built-in tools.
+    
+    Scans internal builtin/ directory and external mcp_builtin_* packages.
+    Useful when new external packages are installed.
+    """
+    user = await get_current_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    # Only admin can trigger rediscovery
+    if user.role != "admin":
+        return JSONResponse(
+            {"error": "Only administrators can rediscover built-in tools"}, status_code=403
+        )
+
+    try:
+        from .builtin_registry import force_rediscover_builtin_tools
+        result = await force_rediscover_builtin_tools(db)
+        return JSONResponse(result)
+    except Exception as e:
+        logger.error(f"Failed to rediscover built-in tools: {e}", exc_info=True)
+        return JSONResponse(
+            {"error": "Failed to rediscover built-in tools", "details": str(e)},
+            status_code=500
+        )
+
+
 # ==================== User Management (Admin) ====================
 
 
@@ -2062,6 +2090,7 @@ app = Starlette(
         # Built-in Tool Management API
         Route("/api/builtin-tools", list_builtin_tools, methods=["GET"]),
         Route("/api/builtin-tools", create_builtin_tool, methods=["POST"]),
+        Route("/api/builtin-tools/rediscover", rediscover_builtin_tools, methods=["POST"]),
         Route("/api/builtin-tools/{tool_id}", get_builtin_tool, methods=["GET"]),
         Route("/api/builtin-tools/{tool_id}", update_builtin_tool, methods=["PUT"]),
         Route(
