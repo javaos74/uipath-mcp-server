@@ -95,7 +95,9 @@ uv run python -m src.main
 ## API Endpoints
 
 ### Authentication
+
 - `POST /auth/register` - Register new user
+
   ```json
   {
     "username": "user",
@@ -104,6 +106,7 @@ uv run python -m src.main
   }
   ```
 - `POST /auth/login` - Login and get JWT token
+
   ```json
   {
     "username": "user",
@@ -112,6 +115,7 @@ uv run python -m src.main
   ```
 - `GET /auth/me` - Get current user info (requires JWT)
 - `PUT /auth/uipath-config` - Update UiPath configuration
+
   ```json
   {
     "uipath_url": "https://cloud.uipath.com/org/tenant",
@@ -119,6 +123,7 @@ uv run python -m src.main
     "uipath_access_token": "your-pat-token"
   }
   ```
+
   Or for OAuth:
   ```json
   {
@@ -130,6 +135,7 @@ uv run python -m src.main
   ```
 
 ### MCP Servers
+
 - `GET /api/servers` - List all servers for current user
 - `POST /api/servers` - Create new MCP server
   ```json
@@ -144,11 +150,13 @@ uv run python -m src.main
 - `DELETE /api/servers/{tenant}/{server}` - Delete server
 
 ### Server Token Management
+
 - `GET /api/servers/{tenant}/{server}/token` - Get current API token
 - `POST /api/servers/{tenant}/{server}/token` - Generate new API token
 - `DELETE /api/servers/{tenant}/{server}/token` - Revoke API token
 
 ### MCP Tools
+
 - `GET /api/servers/{tenant}/{server}/tools` - List all tools
 - `POST /api/servers/{tenant}/{server}/tools` - Create new tool
   ```json
@@ -171,10 +179,12 @@ uv run python -m src.main
 - `DELETE /api/servers/{tenant}/{server}/tools/{tool}` - Delete tool
 
 ### UiPath Integration
+
 - `GET /api/uipath/folders` - List UiPath folders
 - `GET /api/uipath/processes?folder_id={id}` - List processes in folder
 
 ### MCP Protocol
+
 - `GET /mcp/{tenant}/{server}/sse` - SSE connection for MCP clients
 - `POST /mcp/{tenant}/{server}/sse/messages` - SSE message posting
 - `GET /mcp/{tenant}/{server}` - HTTP Streamable (GET)
@@ -182,11 +192,13 @@ uv run python -m src.main
 - `DELETE /mcp/{tenant}/{server}` - HTTP Streamable (DELETE)
 
 **Authentication**: MCP endpoints require API token in header:
+
 ```
 Authorization: Bearer <server-api-token>
 ```
 
 ### Health Check
+
 - `GET /health` - Server health check endpoint
 
 ## UiPath Configuration
@@ -196,13 +208,17 @@ Authorization: Bearer <server-api-token>
 The server supports two authentication methods for UiPath:
 
 #### 1. Personal Access Token (PAT)
+
 Best for UiPath Cloud environments:
+
 - Generate PAT from UiPath Cloud Admin Console
 - Configure in Settings page
 - Suitable for: UiPath Cloud (cloud.uipath.com)
 
 #### 2. OAuth 2.0 (Client Credentials)
+
 Best for On-Premise installations:
+
 - Create OAuth application in UiPath
 - Get Client ID and Client Secret
 - Configure in Settings page
@@ -211,6 +227,7 @@ Best for On-Premise installations:
 ### SSL Certificate Handling
 
 The server automatically handles self-signed certificates for On-Premise installations:
+
 - SSL verification is disabled for non-cloud URLs
 - SSL warnings are suppressed
 - Works seamlessly with internal CA certificates
@@ -218,6 +235,7 @@ The server automatically handles self-signed certificates for On-Premise install
 ### Execution Methods
 
 The server automatically selects the appropriate execution method:
+
 - **UiPath Cloud** (`uipath.com` in URL): Uses UiPath Python SDK
 - **On-Premise**: Uses REST API with `startJobs` endpoint
 
@@ -232,6 +250,7 @@ cp .env.example .env
 ```
 
 Available variables:
+
 - `API_HOST` - Server host (default: 0.0.0.0)
 - `API_PORT` - Server port (default: 8000)
 - `DB_PATH` - Database file path (default: database/mcp_servers.db)
@@ -253,11 +272,13 @@ When the database is first created, a default admin account is automatically cre
 ## Usage Guide
 
 ### 1. Register and Login
+
 1. Access the web UI at `http://localhost:8000`
 2. Login with the default admin account (username: `admin`, password: `admin`)
 3. Or register a new account and login with your credentials
 
 ### 2. Configure UiPath
+
 1. Go to Settings page
 2. Enter your UiPath URL
 3. Choose authentication method:
@@ -266,12 +287,14 @@ When the database is first created, a default admin account is automatically cre
 4. Save configuration
 
 ### 3. Create MCP Server
+
 1. Go to Dashboard
 2. Click "Create Server"
 3. Enter tenant name and server name
 4. Generate API token for the server
 
 ### 4. Add Tools
+
 1. Select a server from the list
 2. Click "Add Tool from UiPath"
 3. Select folder and process
@@ -279,7 +302,9 @@ When the database is first created, a default admin account is automatically cre
 5. Save tool
 
 ### 5. Use MCP Server
+
 Configure your MCP client (e.g., Claude Desktop) with:
+
 ```json
 {
   "mcpServers": {

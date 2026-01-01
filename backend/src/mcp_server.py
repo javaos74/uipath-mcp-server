@@ -1,11 +1,13 @@
 """MCP Server that dynamically exposes registered tools."""
 
 from mcp.server import Server
+from mcp.server.lowlevel.server import NotificationOptions
 from mcp.types import Tool, TextContent, LoggingLevel
 import json
 import asyncio
 import logging
 import os
+import weakref
 from typing import Optional
 
 from .database import Database
@@ -35,6 +37,9 @@ class DynamicMCPServer:
         self.user_id = user_id
         self.uipath_client = UiPathClient()
         self.server = Server(f"uipath-mcp-server-{server_id}")
+        
+        # Track active sessions for broadcasting notifications (WeakSet for auto-cleanup)
+        self._active_sessions: weakref.WeakSet = weakref.WeakSet()
 
         logger.info(
             f"Initializing MCP server {server_id} with tool call timeout: {TOOL_CALL_TIMEOUT}s ({TOOL_CALL_TIMEOUT // 60} minutes)"
@@ -78,6 +83,10 @@ class DynamicMCPServer:
         async def list_tools() -> list[Tool]:
             """List all available tools from database."""
             logger.info(f"=== list_tools invoked for server_id={self.server_id} ===")
+            
+            # Capture session for notifications
+            self._capture_session()
+            
             tools_data = await self.db.list_tools(self.server_id)
             logger.info(f"Found {len(tools_data)} tools in database")
 
@@ -101,6 +110,9 @@ class DynamicMCPServer:
             logger.info(
                 f"=== call_tool invoked: name={name}, arguments={arguments} ==="
             )
+            
+            # Capture session for notifications
+            self._capture_session()
 
             # Get request context for progress notifications
             ctx = self.server.request_context
@@ -634,6 +646,48 @@ class DynamicMCPServer:
                     )
                 ]
 
+    def _capture_session(self):
+        """Capture current session for notifications."""
+        try:
+            session = self.server.request_context.session
+            self._active_sessions.add(session)
+            logger.debug(f"Session captured. Active sessions: {len(self._active_sessions)}")
+        except LookupError:
+            logger.debug("No active request context to capture session")
+        except Exception as e:
+            logger.warning(f"Failed to capture session: {e}")
+
+    async def broadcast_tools_changed(self):
+        """Broadcast tools/list_changed notification to all active sessions.
+        
+        This notifies connected MCP clients that the tool list has changed,
+        prompting them to call list_tools again to get the updated list.
+        """
+        sessions = list(self._active_sessions)  # Snapshot to avoid modification during iteration
+        
+        if not sessions:
+            logger.debug(f"No active sessions to notify for server {self.server_id}")
+            return
+        
+        logger.info(f"Broadcasting tools/list_changed to {len(sessions)} sessions for server {self.server_id}")
+        
+        notified_count = 0
+        for session in sessions:
+            try:
+                await asyncio.wait_for(
+                    session.send_tool_list_changed(),
+                    timeout=5.0  # Timeout to prevent hanging
+                )
+                notified_count += 1
+                logger.debug("Successfully sent tools/list_changed notification")
+            except asyncio.TimeoutError:
+                logger.warning("Session notification timed out")
+            except Exception as e:
+                logger.warning(f"Failed to notify session: {e}")
+                # WeakSet will automatically clean up dead sessions on GC
+        
+        logger.info(f"Notified {notified_count}/{len(sessions)} sessions of tools change")
+
     async def initialize(self):
         """Initialize server (placeholder for future use)."""
         pass
@@ -641,3 +695,13 @@ class DynamicMCPServer:
     def get_server(self) -> Server:
         """Get the MCP server instance."""
         return self.server
+    
+    def create_initialization_options(self):
+        """Create initialization options with listChanged capability enabled."""
+        return self.server.create_initialization_options(
+            notification_options=NotificationOptions(
+                tools_changed=True,  # Enable tools/list_changed notifications
+                prompts_changed=False,
+                resources_changed=False,
+            )
+        )

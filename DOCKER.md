@@ -3,6 +3,7 @@
 ## 개요
 
 이 프로젝트는 멀티 아키텍처 Docker 이미지를 지원합니다:
+
 - **linux/amd64** (x86-64) - Intel/AMD 프로세서
 - **linux/arm64** (ARM64) - Apple Silicon, AWS Graviton 등
 
@@ -23,6 +24,7 @@ Docker 이미지 빌드 전에 프론트엔드를 먼저 빌드해야 합니다:
 ```
 
 빌드 스크립트가 자동으로:
+
 - 프론트엔드 빌드 여부 확인
 - `backend/pyproject.toml`에서 버전 추출
 - 빌드 옵션 선택 메뉴 제공
@@ -77,10 +79,10 @@ export DOCKER_REGISTRY=docker.io/username
 
 ```bash
 # 로그인
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+echo $GITHUB_TOKEN | docker login ghcr.io -u ${USERNAME} --password-stdin
 
 # 빌드 및 푸시
-export DOCKER_REGISTRY=ghcr.io/username
+export DOCKER_REGISTRY=ghcr.io/${USERNAME}
 ./docker-build.sh
 # 선택: 2
 ```
@@ -90,10 +92,10 @@ export DOCKER_REGISTRY=ghcr.io/username
 ```bash
 # 로그인
 aws ecr get-login-password --region ap-northeast-2 | \
-  docker login --username AWS --password-stdin ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com
+  docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com
 
 # 빌드 및 푸시
-export DOCKER_REGISTRY=ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com
+export DOCKER_REGISTRY=${ACCOUNT_ID}.dkr.ecr.ap-northeast-2.amazonaws.com
 ./docker-build.sh
 # 선택: 2
 ```
@@ -102,10 +104,10 @@ export DOCKER_REGISTRY=ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com
 
 ```bash
 # 로그인
-az acr login --name myregistry
+az acr login --name ${myregistry}
 
 # 빌드 및 푸시
-export DOCKER_REGISTRY=myregistry.azurecr.io
+export DOCKER_REGISTRY=${myregistry}.azurecr.io
 ./docker-build.sh
 # 선택: 2
 ```
@@ -114,7 +116,7 @@ export DOCKER_REGISTRY=myregistry.azurecr.io
 
 ```bash
 # pyproject.toml 버전 대신 지정된 버전 사용
-./docker-build.sh v1.0.0
+./docker-build.sh 1.0.0
 ```
 
 ## 수동 멀티 아키텍처 빌드

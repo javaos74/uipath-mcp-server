@@ -36,27 +36,27 @@ root_logger = logging.getLogger()
 if not root_logger.handlers:
     # File handler
     file_handler = logging.FileHandler(log_file, mode="a")  # Append mode
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(logging.Formatter(log_format))
     root_logger.addHandler(file_handler)
     
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(logging.Formatter(log_format))
     root_logger.addHandler(console_handler)
     
     # Set root logger level
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.INFO)
     
     # Make our modules verbose
-    logging.getLogger("uipath-mcp-server").setLevel(logging.DEBUG)
-    logging.getLogger("mcp").setLevel(logging.DEBUG)
-    logging.getLogger("uipath_client").setLevel(logging.DEBUG)
-    logging.getLogger("oauth").setLevel(logging.DEBUG)
+    logging.getLogger("uipath-mcp-server").setLevel(logging.INFO)
+    logging.getLogger("mcp").setLevel(logging.INFO)
+    logging.getLogger("uipath_client").setLevel(logging.INFO)
+    logging.getLogger("oauth").setLevel(logging.INFO)
     
     logging.info("=" * 80)
-    logging.info("Logging configured: file=%s, level=DEBUG", log_file)
+    logging.info("Logging configured: file=%s, level=INFO", log_file)
     logging.info("=" * 80)
 
 # Configure logging
@@ -822,7 +822,7 @@ async def sse_handler(request):
             # Run the MCP server session
             logger.debug("[SSE] Running MCP server session (run) for %s", key)
             await mcp_server.run(
-                read_stream, write_stream, mcp_server.create_initialization_options()
+                read_stream, write_stream, mcp_server_instance.create_initialization_options()
             )
         logger.info(f"[SSE] Session ended for {key}")
         # SSE 연결이 정상적으로 종료됨 - 빈 응답 반환
@@ -928,7 +928,7 @@ async def http_streamable_post_handler(request):
                 logger.debug(
                     "[HTTP-Streamable] run_streamable_session starting for %s", key
                 )
-                init_opts = mcp_server.create_initialization_options()
+                init_opts = mcp_server_instance.create_initialization_options()
                 logger.debug(
                     "[HTTP-Streamable] Initialization options for %s: %s",
                     key,
@@ -1334,10 +1334,13 @@ async def create_tool(request):
             builtin_tool_id=tool.builtin_tool_id,
         )
 
-        # Invalidate MCP server cache to reload tools
+        # Notify connected clients about tool list change
         key = f"{tenant_name}/{server_name}"
         if key in mcp_servers:
-            del mcp_servers[key]
+            try:
+                await mcp_servers[key].broadcast_tools_changed()
+            except Exception as e:
+                logger.warning(f"Failed to broadcast tools changed: {e}")
 
         created = await db.get_tool(server["id"], tool.name)
         return JSONResponse(created, status_code=201)
@@ -1410,10 +1413,13 @@ async def update_tool(request):
             builtin_tool_id=tool_update.builtin_tool_id,
         )
 
-        # Invalidate cache
+        # Notify connected clients about tool list change
         key = f"{tenant_name}/{server_name}"
         if key in mcp_servers:
-            del mcp_servers[key]
+            try:
+                await mcp_servers[key].broadcast_tools_changed()
+            except Exception as e:
+                logger.warning(f"Failed to broadcast tools changed: {e}")
 
         updated = await db.get_tool(server["id"], tool_name)
         return JSONResponse(updated)
@@ -1444,12 +1450,15 @@ async def delete_tool(request):
     if not deleted:
         return JSONResponse({"error": f"Tool '{tool_name}' not found"}, status_code=404)
 
-    # Invalidate cache
+    # Notify connected clients about tool list change
     key = f"{tenant_name}/{server_name}"
     if key in mcp_servers:
-        del mcp_servers[key]
+        try:
+            await mcp_servers[key].broadcast_tools_changed()
+        except Exception as e:
+            logger.warning(f"Failed to broadcast tools changed: {e}")
 
-    return JSONResponse({"message": "Tool deleted"}, status_code=204)
+    return Response(status_code=204)
 
 
 # ==================== Built-in Tool Management ====================
